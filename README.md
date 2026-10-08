@@ -238,7 +238,7 @@ flowchart TD
 
 For every incoming municipal waste stream and processing node $j$, mass conservation is strictly maintained:
 
-$$M_{\text{in}} = M_{\text{recovered}} + M_{\text{landfill}} + M_{\text{process\_loss}}$$
+$$M_{\text{in}} = M_{\text{recovered}} + M_{\text{landfill}} + M_{\text{loss}}$$
 
 For each individual waste category $c \in \{\text{Organic}, \text{Recyclable}, \text{E-Waste}, \text{Residual}\}$:
 
@@ -262,9 +262,10 @@ where:
 
 At any time step $t$, the net power balance across the urban substation must not exceed rated transformer headroom:
 
-$$P_{\text{grid}}(t) = P_{\text{demand}}(t) + P_{\text{EV\_charge}}(t) + P_{\text{BESS\_charge}}(t) - P_{\text{solar}}(t) - P_{\text{WtE}}(t) - P_{\text{BESS\_discharge}}(t) - P_{\text{V2G}}(t)$$
+$$P_{\text{grid}}(t) = P_{\text{demand}}(t) + P_{\text{EV}}(t) + P_{\text{battery,charge}}(t) - P_{\text{solar}}(t) - P_{\text{WtE}}(t) - P_{\text{battery,discharge}}(t) - P_{\text{V2G}}(t)$$
 
-$$\left| P_{\text{grid}}(t) \right| \le P_{\text{transformer\_max}}$$
+$$\left| P_{\text{grid}}(t) \right| \le P_{\text{transformer,max}}$$
+
 
 ### 4. Battery Storage & EV State-of-Charge Dynamics
 
