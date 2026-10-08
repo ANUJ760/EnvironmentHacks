@@ -24,3 +24,9 @@ class CapacityExceededError(EcoTwinError):
 class InvalidRoutingError(EcoTwinError):
     """Raised when routing fractions are invalid or point to incompatible/missing facilities."""
     pass
+
+
+class ScenarioValidationError(EcoTwinError):
+    """Raised when a scenario configuration fails structural, capacity, or physical validation."""
+    pass
+
