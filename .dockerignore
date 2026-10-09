@@ -2,7 +2,6 @@
 .agents
 .codex
 .aws
-ec otwin_agent_handoff
 ecotwin_agent_handoff
 *Handoff*.zip
 *.docx

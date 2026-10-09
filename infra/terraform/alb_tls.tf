@@ -73,3 +73,55 @@ resource "aws_route53_record" "api" {
     evaluate_target_health = true
   }
 }
+
+resource "aws_lb_listener_rule" "private_metrics" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 1
+  condition {
+    path_pattern {
+      values = ["/metrics"]
+    }
+  }
+  action {
+    type = "fixed-response"
+    fixed_response {
+      content_type = "text/plain"
+      status_code  = "403"
+      message_body = "Internal metrics endpoint"
+    }
+  }
+}
+resource "aws_wafv2_web_acl" "api" {
+  name  = local.name
+  scope = "REGIONAL"
+  default_action {
+    allow {}
+  }
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "${local.name}-waf"
+    sampled_requests_enabled   = true
+  }
+  rule {
+    name     = "bounded-request-rate"
+    priority = 1
+    action {
+      block {}
+    }
+    statement {
+      rate_based_statement {
+        limit              = 1000
+        aggregate_key_type = "IP"
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${local.name}-rate"
+      sampled_requests_enabled   = true
+    }
+  }
+}
+resource "aws_wafv2_web_acl_association" "api" {
+  resource_arn = aws_lb.api.arn
+  web_acl_arn  = aws_wafv2_web_acl.api.arn
+}

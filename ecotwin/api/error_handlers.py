@@ -7,6 +7,7 @@ from ecotwin.errors import TwinError
 
 def problem(request, code, detail, status, missing=None):
     headers = {"WWW-Authenticate": "Bearer"} if status == 401 else {}
+    headers["X-Request-ID"] = getattr(request.state, "request_id", "")
     return JSONResponse(
         status_code=status,
         media_type="application/problem+json",

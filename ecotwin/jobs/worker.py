@@ -12,6 +12,9 @@ from ecotwin.jobs.processor import process_job
 
 def run_worker(once=False):
     settings = get_settings()
+    from ecotwin.telemetry.logging import configure
+
+    configure(settings.log_level)
     worker_id = str(uuid4())
     stopping = False
 

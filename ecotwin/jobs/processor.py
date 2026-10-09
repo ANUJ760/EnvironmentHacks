@@ -4,6 +4,7 @@ import multiprocessing
 import time
 from datetime import UTC, datetime, timedelta
 
+import structlog
 from sqlalchemy import select
 
 from ecotwin.db.models import SimulationJob, SimulationResult
@@ -155,3 +156,14 @@ def process_job(job, worker_id, settings, stop=lambda: False):
         current.worker_id = None
         current.locked_until = None
         session.commit()
+
+    from ecotwin.telemetry.metrics import JOBS
+
+    JOBS.labels(current.state).inc()
+    structlog.get_logger().info(
+        "simulation_job_completed",
+        job_id=str(job.id),
+        state=current.state,
+        attempt=current.attempt,
+        error_code=current.error_code,
+    )

@@ -5,7 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import SecretStr, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,8 +15,8 @@ class Settings(BaseSettings):
     database_url: SecretStr = SecretStr(
         "postgresql+psycopg://ecotwin:ecotwin_local_only@localhost:5432/ecotwin"
     )
-    db_pool_size: int = 5
-    db_max_overflow: int = 10
+    db_pool_size: int = Field(default=5, ge=1, le=50)
+    db_max_overflow: int = Field(default=10, ge=0, le=50)
     cors_allowed_origins: str = "http://localhost:3000"
     max_study_area_km2: float = 25
     max_features_per_view: int = 5000
@@ -32,10 +32,11 @@ class Settings(BaseSettings):
     verify_dataset_sha256: bool = True
     ecotwin_queue_backend: Literal["database", "sqs"] = "database"
     ecotwin_sqs_queue_url: str = ""
-    worker_poll_seconds: float = 2
+    worker_poll_seconds: float = Field(default=2, gt=0, le=60)
     worker_lease_seconds: int = 180
-    worker_max_attempts: int = 3
-    simulation_timeout_seconds: int = 120
+    worker_max_attempts: int = Field(default=3, ge=1, le=5)
+    max_pending_jobs_per_user: int = Field(default=10, ge=1, le=100)
+    simulation_timeout_seconds: int = Field(default=120, ge=1, le=600)
     open_meteo_enabled: bool = True
     open_meteo_base_url: str = "https://api.open-meteo.com"
     openaq_enabled: bool = False

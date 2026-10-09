@@ -1,5 +1,4 @@
 # Operator handoff materials must never be published.
-ec otwin_agent_handoff/
 ecotwin_agent_handoff/
 EcoTwin_Backend_Agent_Handoff_Pack.zip
 *Handoff*.zip

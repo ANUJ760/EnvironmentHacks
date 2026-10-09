@@ -3,10 +3,10 @@
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 
-from ecotwin.db.models import SimulationJob
+from ecotwin.db.models import SimulationJob, UserAccount
 from ecotwin.errors import TwinError
 from ecotwin.simulation.command import canonical_digest
 
@@ -25,6 +25,33 @@ def submit(session, scenario, user_id, key, request, edits):
         "request": request,
     }
     digest = canonical_digest(frozen)
+    from ecotwin.config import get_settings
+
+    session.scalar(select(UserAccount).where(UserAccount.id == user_id).with_for_update())
+    existing = session.scalar(
+        select(SimulationJob).where(
+            SimulationJob.requested_by == user_id, SimulationJob.idempotency_key == key
+        )
+    )
+    if existing:
+        if existing.request_digest != digest:
+            raise TwinError(
+                "IDEMPOTENCY_CONFLICT", "This key already pins a different request", 409
+            )
+        session.commit()
+        return existing
+    pending = session.scalar(
+        select(func.count())
+        .select_from(SimulationJob)
+        .where(
+            SimulationJob.requested_by == user_id,
+            SimulationJob.state.in_(["QUEUED", "RUNNING", "RETRY_WAIT", "CANCEL_REQUESTED"]),
+        )
+    )
+    if pending >= get_settings().max_pending_jobs_per_user:
+        raise TwinError(
+            "JOB_QUOTA_EXCEEDED", "Wait for or cancel pending jobs before submitting more", 429
+        )
     now = datetime.now(UTC)
     identifier = uuid4()
     session.execute(
