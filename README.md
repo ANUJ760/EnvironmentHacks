@@ -1,8 +1,8 @@
-# EcoTwin 
+<p align="center">
+  <img src="ecotwin.png" alt="GeCompose Hero Banner" width="100%" />
+</p>
 
-### Physics-Informed AI Digital Twin for Urban Energy, Mobility & Resource Systems
-
-> A computational digital twin for modeling, stress-testing, and optimizing interconnected urban systems before deploying interventions in the real world.
+<p align='center'> <b> A computational digital twin for modeling, stress-testing, and optimizing interconnected urban systems before deploying interventions in the real world. </b> </p>
 
 
 ---
