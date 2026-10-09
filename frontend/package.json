@@ -1,0 +1,5 @@
+{
+  "name": "ecotwin-api-contract", "version": "0.2.0", "private": true,
+  "scripts": {"generate": "openapi-typescript ../backend/openapi.json -o src/lib/api-types.ts", "typecheck": "tsc --noEmit"},
+  "devDependencies": {"openapi-typescript": "7.6.1", "typescript": "5.8.3"}
+}
