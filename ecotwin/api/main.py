@@ -35,7 +35,14 @@ register_handlers(app)
 def configure_cors(application):
     import os
 
-    origins = os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    from dotenv import dotenv_values
+
+    origin_setting = (
+        os.environ.get("CORS_ALLOWED_ORIGINS")
+        or dotenv_values(".env").get("CORS_ALLOWED_ORIGINS")
+        or "http://localhost:3000"
+    )
+    origins = origin_setting.split(",")
     application.add_middleware(
         CORSMiddleware,
         allow_origins=origins,

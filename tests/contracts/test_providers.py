@@ -83,3 +83,9 @@ def test_openaq_pagination():
             }
 
     assert len(pages(Client(), "/locations", {}, {})) == 102
+
+
+def test_timezone_aware_provider_hour_axis():
+    document = weather_document()
+    document["hourly"]["time"] = ["2026-10-09T00:00:00+00:00", "2026-10-09T01:00:00+00:00"]
+    assert parse_weather(document, datetime.now(UTC))[0]["valid_at"].tzinfo is not None

@@ -110,3 +110,61 @@ def test_geometry_protection():
         project(box(0, 0, 1, 1), 4326)
     with pytest.raises(TwinError):
         validate_area(box(0, 0, 1, 1), 32631)
+
+
+def test_cloud_publication_failure_is_reconciled_without_raising(monkeypatch):
+    import ecotwin.jobs.queue as module
+    import ecotwin.jobs.sqs_queue as sqs
+    from ecotwin.config import Settings
+
+    settings = Settings(_env_file=None, ecotwin_queue_backend="sqs", ecotwin_sqs_queue_url="url")
+    monkeypatch.setattr(module, "get_settings", lambda: settings)
+    published = []
+
+    class Queue:
+        def __init__(self, *args):
+            self.url = "url"
+
+        def publish(self, identifier):
+            published.append(identifier)
+
+    monkeypatch.setattr(sqs, "SQSQueue", Queue)
+    identifier = uuid4()
+    module.publish_hint(identifier)
+    assert published == [identifier]
+
+    class Broken(Queue):
+        def publish(self, identifier):
+            raise OSError("network")
+
+    monkeypatch.setattr(sqs, "SQSQueue", Broken)
+    module.publish_hint(identifier)
+
+
+def test_local_worker_does_not_discover_aws(monkeypatch):
+    import ecotwin.jobs.sqs_queue as sqs
+    import ecotwin.jobs.worker as worker
+    from ecotwin.config import Settings
+
+    settings = Settings(_env_file=None)
+
+    class Session:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    monkeypatch.setattr(worker, "get_settings", lambda: settings)
+    monkeypatch.setattr(worker, "session_factory", lambda: Session)
+    job = object()
+    processed = []
+    monkeypatch.setattr(worker, "claim", lambda *args: job)
+    monkeypatch.setattr(worker, "process_job", lambda value, *args: processed.append(value))
+    monkeypatch.setattr(
+        sqs,
+        "SQSQueue",
+        lambda *args: (_ for _ in ()).throw(AssertionError("AWS must not be discovered offline")),
+    )
+    worker.run_worker(once=True)
+    assert processed == [job]

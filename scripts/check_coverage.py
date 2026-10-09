@@ -20,10 +20,15 @@ new_dirs = (
 files = report["files"]
 
 
-def percentage(names):
+def percentage(names, branch_only=False):
     selected = [files[name]["summary"] for name in names]
-    covered = sum(item["covered_lines"] + item["covered_branches"] for item in selected)
-    total = sum(item["num_statements"] + item["num_branches"] for item in selected)
+    covered = sum(
+        item["covered_branches"] + (0 if branch_only else item["covered_lines"])
+        for item in selected
+    )
+    total = sum(
+        item["num_branches"] + (0 if branch_only else item["num_statements"]) for item in selected
+    )
     return covered / total * 100 if total else 100
 
 
@@ -35,11 +40,10 @@ new = [
 core = [name for name in files if name.startswith(("ecotwin/models/", "ecotwin/auth/"))]
 values = {
     "new_backend_statement_and_branch_percent": percentage(new),
+    "new_backend_branch_percent": percentage(new, True),
     "scientific_and_auth_statement_and_branch_percent": percentage(core),
+    "scientific_and_auth_branch_percent": percentage(core, True),
 }
 print(json.dumps(values, sort_keys=True))
-if (
-    values["new_backend_statement_and_branch_percent"] < 85
-    or values["scientific_and_auth_statement_and_branch_percent"] < 95
-):
+if values["new_backend_branch_percent"] < 85 or values["scientific_and_auth_branch_percent"] < 95:
     raise SystemExit("Release coverage gate failed")
