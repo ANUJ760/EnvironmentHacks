@@ -107,3 +107,18 @@ def test_production_guards(monkeypatch):
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "never-real-test-key")
     with pytest.raises(ValidationError):
         Settings(_env_file=None, **values)
+
+
+def test_configuration_errors_never_echo_secret_inputs():
+    with pytest.raises(ValidationError) as error:
+        Settings(
+            _env_file=None,
+            app_env="production",
+            database_url="postgresql+psycopg://operator:never-log-database-password@localhost/ecotwin",
+            dev_jwt_secret="never-log-development-secret-32-bytes",
+        )
+    message = str(error.value)
+    assert (
+        "never-log-database-password" not in message
+        and "never-log-development-secret" not in message
+    )

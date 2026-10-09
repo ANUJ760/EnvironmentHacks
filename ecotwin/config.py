@@ -10,7 +10,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore", case_sensitive=False)
+    model_config = SettingsConfigDict(
+        env_file=".env", extra="ignore", case_sensitive=False, hide_input_in_errors=True
+    )
     app_env: Literal["development", "test", "production"] = "development"
     database_url: SecretStr = SecretStr(
         "postgresql+psycopg://ecotwin:ecotwin_local_only@localhost:5432/ecotwin"
