@@ -888,8 +888,8 @@ def test_pinned_weather_periods_and_model_input_failures(seeded):
             "edits": [],
             "request": {
                 "requested_models": ["runoff_screen"],
-                "start_at": "2026-10-09T00:00:00+00:00",
-                "end_at": "2026-10-09T02:00:00+00:00",
+                "start_at": "2026-10-08T23:00:00+00:00",
+                "end_at": "2026-10-09T01:00:00+00:00",
             },
         }
         report = execute(session, frozen)

@@ -50,3 +50,8 @@ Deterministic input errors are terminal; transport errors retry up to WORKER_MAX
 Retain previous immutable image digest for compatible rollback; no automatic schema downgrade.
 Refreshes create revisions but do not alter snapshots or reports. Publish a new snapshot
 only after checking coverage, provenance and licenses. Keep source originals for audit.
+
+Hourly rainfall and irradiance describe the preceding hour ending at provider `valid_at`.
+Model windows select those hourly intervals with `start_at < valid_at <= end_at`;
+weather observation queries select timestamped samples with `[start,end)` semantics.
+Reports preserve exact model requests, frozen edits and interval interpretation.

@@ -69,11 +69,11 @@ def execute(session, frozen, checkpoint=lambda progress: None):
         if request.get("start_at"):
             start = datetime.fromisoformat(request["start_at"])
             end = datetime.fromisoformat(request["end_at"])
-            weather = [w for w in weather if start <= w.valid_at < end]
+            weather = [w for w in weather if start < w.valid_at <= end]
             if (
                 not weather
-                or weather[0].valid_at != start
-                or weather[-1].valid_at + timedelta(hours=1) != end
+                or weather[0].valid_at != start + timedelta(hours=1)
+                or weather[-1].valid_at != end
             ):
                 raise TwinError(
                     "INSUFFICIENT_INPUT_DATA", "Weather must cover every requested hour"
@@ -204,8 +204,8 @@ def execute(session, frozen, checkpoint=lambda progress: None):
                 canonical_digest(installations),
                 city.slug,
                 config["limitations"],
-                start=weather[0].valid_at.isoformat(),
-                end=(weather[-1].valid_at + timedelta(hours=1)).isoformat(),
+                start=(weather[0].valid_at - timedelta(hours=1)).isoformat(),
+                end=weather[-1].valid_at.isoformat(),
             )
         )
         unavailable.append(
@@ -275,6 +275,9 @@ def execute(session, frozen, checkpoint=lambda progress: None):
         "warnings": warnings,
         "evidence": {
             "schema_version": 1,
+            "simulation_request": request,
+            "frozen_edits": edits,
+            "hourly_interval_semantics": "Rainfall depth and mean irradiance cover the hour ending at valid_at",
             "snapshot_id": str(snapshot.id),
             "scenario_revision": frozen["scenario_revision"],
             "data_provenance": [
