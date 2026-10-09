@@ -135,3 +135,19 @@ def test_provider_network_retry_limit():
     with pytest.raises(TwinError) as exc:
         client.json("https://api.open-meteo.com/v1/forecast")
     assert exc.value.code == "UPSTREAM_UNAVAILABLE"
+
+
+def test_cached_air_rejects_missing_measurement():
+    from ecotwin.ingestion.openaq import validate_cached_air
+
+    with pytest.raises(TwinError):
+        validate_cached_air(
+            {"coverage": "stations", "observations": [{"value": float("nan")}]},
+            box(79, 21, 79.2, 21.2),
+        )
+    assert (
+        validate_cached_air({"coverage": "none", "observations": []}, box(79, 21, 79.2, 21.2))[
+            "coverage"
+        ]
+        == "none"
+    )
