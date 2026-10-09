@@ -314,10 +314,163 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AirReading */
+        AirReading: {
+            /** Distance From City Centroid M */
+            distance_from_city_centroid_m: number;
+            /** Location */
+            location: {
+                [key: string]: unknown;
+            };
+            /**
+             * Measured At
+             * Format: date-time
+             */
+            measured_at: string;
+            /** Parameter */
+            parameter: string;
+            /**
+             * Revision Id
+             * Format: uuid
+             */
+            revision_id: string;
+            /** Source Url */
+            source_url: string;
+            /** Stale */
+            stale: boolean;
+            /**
+             * Station Id
+             * Format: uuid
+             */
+            station_id: string;
+            /** Station Name */
+            station_name: string;
+            /** Unit */
+            unit: string;
+            /** Value */
+            value: number;
+        };
+        /** AirView */
+        AirView: {
+            /** Evidence Class */
+            evidence_class: string;
+            /** Readings */
+            readings: components["schemas"]["AirReading"][];
+            /** Reason Code */
+            reason_code: string | null;
+            /**
+             * Spatial Scope
+             * @constant
+             */
+            spatial_scope: "station_only";
+        };
+        /** CityView */
+        CityView: {
+            /** Active Snapshot Id */
+            active_snapshot_id: string | null;
+            /** Analysis Srid */
+            analysis_srid: number;
+            /** Boundary */
+            boundary: {
+                [key: string]: unknown;
+            };
+            /** Capabilities */
+            capabilities: string[];
+            /** Display Name */
+            display_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Slug */
+            slug: string;
+            /** Status */
+            status: string;
+            /** Timezone */
+            timezone: string;
+        };
+        /** DatasetView */
+        DatasetView: {
+            /**
+             * Acquired At
+             * Format: date-time
+             */
+            acquired_at: string;
+            /** Attribution */
+            attribution: string;
+            /** Byte Size */
+            byte_size: number;
+            /** Coverage */
+            coverage: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Provider */
+            provider: string;
+            /** Quality */
+            quality: {
+                [key: string]: unknown;
+            };
+            /** Sha256 */
+            sha256: string;
+            /** Source License */
+            source_license: string;
+            /** Source Url */
+            source_url: string;
+            /** Status */
+            status: string;
+        };
         /** EditsReplace */
         EditsReplace: {
             /** Edits */
             edits: (components["schemas"]["Reclassify"] | components["schemas"]["SolarInstall"] | components["schemas"]["WasteOverride"])[];
+        };
+        /**
+         * EvidenceClass
+         * @enum {string}
+         */
+        EvidenceClass: "OBSERVED" | "DETERMINISTIC_CALCULATION" | "SCREENING_ESTIMATE" | "CALIBRATED_PREDICTION" | "ASSUMED_INPUT" | "UNAVAILABLE";
+        /** FeatureCollection */
+        FeatureCollection: {
+            /** Features */
+            features: components["schemas"]["GeoFeatureView"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+            /**
+             * Type
+             * @default FeatureCollection
+             * @constant
+             */
+            type: "FeatureCollection";
+        };
+        /** GeoFeatureView */
+        GeoFeatureView: {
+            /** Geometry */
+            geometry: {
+                [key: string]: unknown;
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Properties */
+            properties: {
+                [key: string]: unknown;
+            };
+            /**
+             * Type
+             * @default Feature
+             * @constant
+             */
+            type: "Feature";
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -353,6 +506,67 @@ export interface components {
             result_id: string | null;
             /** State */
             state: string;
+        };
+        /** LandcoverView */
+        LandcoverView: {
+            /** City Area M2 */
+            city_area_m2: number;
+            /** Class Areas M2 */
+            class_areas_m2: {
+                [key: string]: number;
+            };
+            /** Class Percentages */
+            class_percentages: {
+                [key: string]: number;
+            };
+            /** Covered Area M2 */
+            covered_area_m2: number;
+            /** Limitations */
+            limitations: string[];
+            /**
+             * Reference Year
+             * @default 2021
+             * @constant
+             */
+            reference_year: 2021;
+            /** Source Revision Ids */
+            source_revision_ids: string[];
+        };
+        /** Metric */
+        Metric: {
+            /** Absolute Delta */
+            absolute_delta: number | null;
+            /** Baseline Value */
+            baseline_value: number | null;
+            /** Confidence Interval */
+            confidence_interval?: {
+                [key: string]: unknown;
+            } | null;
+            /** End At */
+            end_at?: string | null;
+            evidence_class: components["schemas"]["EvidenceClass"];
+            /** Limitations */
+            limitations: string[];
+            /** Model Id */
+            model_id: string;
+            /** Model Version */
+            model_version: string;
+            /** Name */
+            name: string;
+            /** Parameter Digest */
+            parameter_digest: string;
+            /** Percentage Delta */
+            percentage_delta: number | null;
+            /** Scenario Value */
+            scenario_value: number | null;
+            /** Source Revision Ids */
+            source_revision_ids: string[];
+            /** Spatial Scope */
+            spatial_scope: string;
+            /** Start At */
+            start_at?: string | null;
+            /** Unit */
+            unit: string;
         };
         /** Reclassify */
         Reclassify: {
@@ -396,9 +610,7 @@ export interface components {
              */
             job_id: string;
             /** Metrics */
-            metrics: {
-                [key: string]: unknown;
-            }[];
+            metrics: components["schemas"]["Metric"][];
             /** Model Versions */
             model_versions: {
                 [key: string]: string;
@@ -528,6 +740,69 @@ export interface components {
             /** Stream Category */
             stream_category: string;
         };
+        /** WeatherReading */
+        WeatherReading: {
+            /** Ghi W M2 */
+            ghi_w_m2: number | null;
+            /** Humidity Pct */
+            humidity_pct: number | null;
+            /**
+             * Issued At
+             * Format: date-time
+             */
+            issued_at: string;
+            /** Model Name */
+            model_name: string;
+            /** Rain Mm */
+            rain_mm: number | null;
+            /** Source Lat */
+            source_lat: number;
+            /** Source Lon */
+            source_lon: number;
+            /** Temperature C */
+            temperature_c: number | null;
+            /**
+             * Valid At
+             * Format: date-time
+             */
+            valid_at: string;
+            /** Wind Mps */
+            wind_mps: number | null;
+        };
+        /** WeatherView */
+        WeatherView: {
+            /** Age Hours */
+            age_hours?: number | null;
+            /**
+             * Current
+             * @default false
+             */
+            current: boolean;
+            /**
+             * Evidence Class
+             * @default UNAVAILABLE
+             */
+            evidence_class: string;
+            /** Reason Code */
+            reason_code?: string | null;
+            /** Series */
+            series: components["schemas"]["WeatherReading"][];
+            /**
+             * Spatial Scope
+             * @default coarse_forecast_grid
+             */
+            spatial_scope: string;
+            /**
+             * Stale
+             * @default false
+             */
+            stale: boolean;
+            /**
+             * Status
+             * @default AVAILABLE
+             */
+            status: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -599,9 +874,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    }[];
+                    "application/json": components["schemas"]["CityView"][];
                 };
             };
             /** @description Validation Error */
@@ -632,9 +905,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CityView"];
                 };
             };
             /** @description Validation Error */
@@ -668,9 +939,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    }[];
+                    "application/json": components["schemas"]["DatasetView"][];
                 };
             };
             /** @description Validation Error */
@@ -706,9 +975,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["FeatureCollection"];
                 };
             };
             /** @description Validation Error */
@@ -739,9 +1006,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["LandcoverView"];
                 };
             };
             /** @description Validation Error */
@@ -775,9 +1040,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AirView"];
                 };
             };
             /** @description Validation Error */
@@ -811,9 +1074,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["WeatherView"];
                 };
             };
             /** @description Validation Error */

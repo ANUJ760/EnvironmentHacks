@@ -68,3 +68,8 @@ variable "ingest_city_slug" {
   type    = string
   default = ""
 }
+
+variable "enable_tasks" {
+  type    = bool
+  default = false
+}

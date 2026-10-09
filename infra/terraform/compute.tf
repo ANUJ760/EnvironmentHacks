@@ -11,7 +11,7 @@ resource "aws_cloudwatch_log_group" "tasks" {
   retention_in_days = 30
 }
 resource "aws_ecs_task_definition" "tasks" {
-  for_each = var.enable_services ? local.commands : {
+  for_each = var.enable_tasks || var.enable_services ? local.commands : {
   }
   family                   = "${local.name}-${each.key}"
   requires_compatibilities = ["FARGATE"]

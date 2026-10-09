@@ -1,0 +1,237 @@
+{
+  "$defs": {
+    "FacilityInput": {
+      "additionalProperties": false,
+      "properties": {
+        "facility_id": {
+          "title": "Facility Id",
+          "type": "string"
+        },
+        "facility_type": {
+          "title": "Facility Type",
+          "type": "string"
+        },
+        "lat": {
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Lat",
+          "type": "number"
+        },
+        "lon": {
+          "maximum": 180,
+          "minimum": -180,
+          "title": "Lon",
+          "type": "number"
+        },
+        "capacity_tpd": {
+          "minimum": 0,
+          "title": "Capacity Tpd",
+          "type": "number"
+        },
+        "accepted_categories": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Accepted Categories",
+          "type": "array"
+        },
+        "profiles": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ProcessingProfileInput"
+          },
+          "title": "Profiles",
+          "type": "object"
+        },
+        "effective_date": {
+          "title": "Effective Date",
+          "type": "string"
+        },
+        "source_url": {
+          "title": "Source Url",
+          "type": "string"
+        },
+        "measurement_type": {
+          "enum": [
+            "MEASURED",
+            "ASSUMED"
+          ],
+          "title": "Measurement Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "facility_id",
+        "facility_type",
+        "lat",
+        "lon",
+        "capacity_tpd",
+        "accepted_categories",
+        "profiles",
+        "effective_date",
+        "source_url",
+        "measurement_type"
+      ],
+      "title": "FacilityInput",
+      "type": "object"
+    },
+    "ProcessingProfileInput": {
+      "additionalProperties": false,
+      "properties": {
+        "material_recovery_rate": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Material Recovery Rate",
+          "type": "number"
+        },
+        "landfill_residue_rate": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Landfill Residue Rate",
+          "type": "number"
+        },
+        "process_loss_rate": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Process Loss Rate",
+          "type": "number"
+        },
+        "specific_energy_kwh_per_tonne": {
+          "minimum": 0,
+          "title": "Specific Energy Kwh Per Tonne",
+          "type": "number"
+        },
+        "energy_efficiency": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Energy Efficiency",
+          "type": "number"
+        }
+      },
+      "required": [
+        "material_recovery_rate",
+        "landfill_residue_rate",
+        "process_loss_rate",
+        "specific_energy_kwh_per_tonne",
+        "energy_efficiency"
+      ],
+      "title": "ProcessingProfileInput",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_url": {
+      "title": "Source Url",
+      "type": "string"
+    },
+    "source_license": {
+      "title": "Source License",
+      "type": "string"
+    },
+    "attribution": {
+      "title": "Attribution",
+      "type": "string"
+    },
+    "origin_id": {
+      "title": "Origin Id",
+      "type": "string"
+    },
+    "measurement_type": {
+      "enum": [
+        "MEASURED",
+        "ASSUMED"
+      ],
+      "title": "Measurement Type",
+      "type": "string"
+    },
+    "daily_waste_tonnes": {
+      "minimum": 0,
+      "title": "Daily Waste Tonnes",
+      "type": "number"
+    },
+    "composition": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Composition",
+      "type": "object"
+    },
+    "facilities": {
+      "items": {
+        "$ref": "#/$defs/FacilityInput"
+      },
+      "maxItems": 1000,
+      "minItems": 1,
+      "title": "Facilities",
+      "type": "array"
+    },
+    "routing": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "items": {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            "type": "array"
+          }
+        ]
+      },
+      "title": "Routing",
+      "type": "object"
+    },
+    "optimization_weights": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Optimization Weights"
+    },
+    "synthetic": {
+      "const": false,
+      "default": false,
+      "title": "Synthetic",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "source_url",
+    "source_license",
+    "attribution",
+    "origin_id",
+    "measurement_type",
+    "daily_waste_tonnes",
+    "composition",
+    "facilities",
+    "routing"
+  ],
+  "title": "WasteInput",
+  "type": "object"
+}

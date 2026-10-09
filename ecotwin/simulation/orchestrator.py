@@ -2,7 +2,7 @@
 
 import json
 import math
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import select
@@ -82,11 +82,9 @@ def execute(session, frozen, checkpoint=lambda progress: None):
             b.valid_at - a.valid_at != timedelta(hours=1) for a, b in zip(weather, weather[1:])
         ):
             raise TwinError("INSUFFICIENT_INPUT_DATA", "Contiguous weather required")
-        age = (datetime.now(UTC) - weather[0].issued_at).total_seconds() / 3600
-        if age > 6:
-            warnings.append(
-                "STALE_WEATHER: pinned forecast issue older than 6 hours; no current-weather claim"
-            )
+        warnings.append(
+            "PINNED_FORECAST: issue time is preserved; this simulation does not claim current weather"
+        )
     checkpoint(30)
     if {"landcover_summary", "runoff_screen"} & set(requested):
         baseline = load_cover(session, snapshot, city)

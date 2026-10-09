@@ -78,7 +78,7 @@ resource "aws_iam_role_policy_attachment" "execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 resource "aws_iam_role_policy" "secrets" {
-  count = var.enable_services ? 1 : 0
+  count = var.enable_tasks || var.enable_services ? 1 : 0
   role  = aws_iam_role.execution.id
   policy = jsonencode({
     Version = "2012-10-17", Statement = [{

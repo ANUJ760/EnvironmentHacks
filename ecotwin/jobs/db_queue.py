@@ -58,7 +58,7 @@ def submit(session, scenario, user_id, key, request, edits):
     return row
 
 
-def claim(session, worker_id, settings):
+def claim(session, worker_id, settings, job_id=None):
     now = datetime.now(UTC)
     # Sweep interrupted cancellation and exhausted expired leases before claiming.
     expired = list(
@@ -89,6 +89,7 @@ def claim(session, worker_id, settings):
         select(SimulationJob)
         .where(
             SimulationJob.state.in_(["QUEUED", "RETRY_WAIT"]),
+            SimulationJob.id == job_id if job_id else True,
             SimulationJob.not_before <= now,
             SimulationJob.attempt < settings.worker_max_attempts,
         )

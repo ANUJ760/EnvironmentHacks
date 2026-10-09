@@ -138,7 +138,7 @@ def pbf_geojson(path: Path):
                 features.append(
                     {
                         "type": "Feature",
-                        "id": f"osm:{kind}/{obj.id}",
+                        "id": f"osm:{kind}/{obj.orig_id() if method == 'create_multipolygon' else obj.id}",
                         "properties": tags,
                         "geometry": mapping(geom),
                     }
@@ -153,7 +153,9 @@ def pbf_geojson(path: Path):
             self.add(obj, "node", "create_point")
 
         def way(self, obj):
-            if not obj.is_closed():
+            if not obj.is_closed() or (
+                "highway" in dict(obj.tags) and dict(obj.tags).get("area") != "yes"
+            ):
                 self.add(obj, "way", "create_linestring")
 
         def area(self, obj):

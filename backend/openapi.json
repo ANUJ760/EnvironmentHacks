@@ -1,6 +1,257 @@
 {
   "components": {
     "schemas": {
+      "AirReading": {
+        "properties": {
+          "distance_from_city_centroid_m": {
+            "title": "Distance From City Centroid M",
+            "type": "number"
+          },
+          "location": {
+            "additionalProperties": true,
+            "title": "Location",
+            "type": "object"
+          },
+          "measured_at": {
+            "format": "date-time",
+            "title": "Measured At",
+            "type": "string"
+          },
+          "parameter": {
+            "title": "Parameter",
+            "type": "string"
+          },
+          "revision_id": {
+            "format": "uuid",
+            "title": "Revision Id",
+            "type": "string"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          },
+          "stale": {
+            "title": "Stale",
+            "type": "boolean"
+          },
+          "station_id": {
+            "format": "uuid",
+            "title": "Station Id",
+            "type": "string"
+          },
+          "station_name": {
+            "title": "Station Name",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "station_id",
+          "station_name",
+          "location",
+          "parameter",
+          "value",
+          "unit",
+          "measured_at",
+          "source_url",
+          "revision_id",
+          "stale",
+          "distance_from_city_centroid_m"
+        ],
+        "title": "AirReading",
+        "type": "object"
+      },
+      "AirView": {
+        "properties": {
+          "evidence_class": {
+            "title": "Evidence Class",
+            "type": "string"
+          },
+          "readings": {
+            "items": {
+              "$ref": "#/components/schemas/AirReading"
+            },
+            "title": "Readings",
+            "type": "array"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "spatial_scope": {
+            "const": "station_only",
+            "title": "Spatial Scope",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evidence_class",
+          "reason_code",
+          "spatial_scope",
+          "readings"
+        ],
+        "title": "AirView",
+        "type": "object"
+      },
+      "CityView": {
+        "properties": {
+          "active_snapshot_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Snapshot Id"
+          },
+          "analysis_srid": {
+            "title": "Analysis Srid",
+            "type": "integer"
+          },
+          "boundary": {
+            "additionalProperties": true,
+            "title": "Boundary",
+            "type": "object"
+          },
+          "capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Capabilities",
+            "type": "array"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "display_name",
+          "boundary",
+          "analysis_srid",
+          "timezone",
+          "status",
+          "active_snapshot_id",
+          "capabilities"
+        ],
+        "title": "CityView",
+        "type": "object"
+      },
+      "DatasetView": {
+        "properties": {
+          "acquired_at": {
+            "format": "date-time",
+            "title": "Acquired At",
+            "type": "string"
+          },
+          "attribution": {
+            "title": "Attribution",
+            "type": "string"
+          },
+          "byte_size": {
+            "title": "Byte Size",
+            "type": "integer"
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "quality": {
+            "additionalProperties": true,
+            "title": "Quality",
+            "type": "object"
+          },
+          "sha256": {
+            "title": "Sha256",
+            "type": "string"
+          },
+          "source_license": {
+            "title": "Source License",
+            "type": "string"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "provider",
+          "source_url",
+          "sha256",
+          "byte_size",
+          "source_license",
+          "attribution",
+          "acquired_at",
+          "coverage",
+          "status",
+          "quality"
+        ],
+        "title": "DatasetView",
+        "type": "object"
+      },
       "EditsReplace": {
         "additionalProperties": false,
         "properties": {
@@ -35,6 +286,85 @@
           "edits"
         ],
         "title": "EditsReplace",
+        "type": "object"
+      },
+      "EvidenceClass": {
+        "enum": [
+          "OBSERVED",
+          "DETERMINISTIC_CALCULATION",
+          "SCREENING_ESTIMATE",
+          "CALIBRATED_PREDICTION",
+          "ASSUMED_INPUT",
+          "UNAVAILABLE"
+        ],
+        "title": "EvidenceClass",
+        "type": "string"
+      },
+      "FeatureCollection": {
+        "properties": {
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/GeoFeatureView"
+            },
+            "title": "Features",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "type": {
+            "const": "FeatureCollection",
+            "default": "FeatureCollection",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "features",
+          "next_cursor"
+        ],
+        "title": "FeatureCollection",
+        "type": "object"
+      },
+      "GeoFeatureView": {
+        "properties": {
+          "geometry": {
+            "additionalProperties": true,
+            "title": "Geometry",
+            "type": "object"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "properties": {
+            "additionalProperties": true,
+            "title": "Properties",
+            "type": "object"
+          },
+          "type": {
+            "const": "Feature",
+            "default": "Feature",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "geometry",
+          "properties"
+        ],
+        "title": "GeoFeatureView",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -135,6 +465,203 @@
         "title": "JobView",
         "type": "object"
       },
+      "LandcoverView": {
+        "properties": {
+          "city_area_m2": {
+            "title": "City Area M2",
+            "type": "number"
+          },
+          "class_areas_m2": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Class Areas M2",
+            "type": "object"
+          },
+          "class_percentages": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Class Percentages",
+            "type": "object"
+          },
+          "covered_area_m2": {
+            "title": "Covered Area M2",
+            "type": "number"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "reference_year": {
+            "const": 2021,
+            "default": 2021,
+            "title": "Reference Year",
+            "type": "integer"
+          },
+          "source_revision_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Source Revision Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "class_areas_m2",
+          "class_percentages",
+          "covered_area_m2",
+          "city_area_m2",
+          "source_revision_ids",
+          "limitations"
+        ],
+        "title": "LandcoverView",
+        "type": "object"
+      },
+      "Metric": {
+        "properties": {
+          "absolute_delta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Absolute Delta"
+          },
+          "baseline_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Value"
+          },
+          "confidence_interval": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence Interval"
+          },
+          "end_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End At"
+          },
+          "evidence_class": {
+            "$ref": "#/components/schemas/EvidenceClass"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "model_id": {
+            "title": "Model Id",
+            "type": "string"
+          },
+          "model_version": {
+            "title": "Model Version",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "parameter_digest": {
+            "title": "Parameter Digest",
+            "type": "string"
+          },
+          "percentage_delta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percentage Delta"
+          },
+          "scenario_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Value"
+          },
+          "source_revision_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Revision Ids",
+            "type": "array"
+          },
+          "spatial_scope": {
+            "title": "Spatial Scope",
+            "type": "string"
+          },
+          "start_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start At"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "baseline_value",
+          "scenario_value",
+          "absolute_delta",
+          "percentage_delta",
+          "unit",
+          "spatial_scope",
+          "evidence_class",
+          "model_id",
+          "model_version",
+          "source_revision_ids",
+          "parameter_digest",
+          "limitations"
+        ],
+        "title": "Metric",
+        "type": "object"
+      },
       "Reclassify": {
         "additionalProperties": false,
         "properties": {
@@ -201,8 +728,7 @@
           },
           "metrics": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/Metric"
             },
             "title": "Metrics",
             "type": "array"
@@ -509,6 +1035,164 @@
         ],
         "title": "WasteOverride",
         "type": "object"
+      },
+      "WeatherReading": {
+        "properties": {
+          "ghi_w_m2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ghi W M2"
+          },
+          "humidity_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Humidity Pct"
+          },
+          "issued_at": {
+            "format": "date-time",
+            "title": "Issued At",
+            "type": "string"
+          },
+          "model_name": {
+            "title": "Model Name",
+            "type": "string"
+          },
+          "rain_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rain Mm"
+          },
+          "source_lat": {
+            "title": "Source Lat",
+            "type": "number"
+          },
+          "source_lon": {
+            "title": "Source Lon",
+            "type": "number"
+          },
+          "temperature_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature C"
+          },
+          "valid_at": {
+            "format": "date-time",
+            "title": "Valid At",
+            "type": "string"
+          },
+          "wind_mps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wind Mps"
+          }
+        },
+        "required": [
+          "valid_at",
+          "issued_at",
+          "temperature_c",
+          "rain_mm",
+          "humidity_pct",
+          "wind_mps",
+          "ghi_w_m2",
+          "model_name",
+          "source_lat",
+          "source_lon"
+        ],
+        "title": "WeatherReading",
+        "type": "object"
+      },
+      "WeatherView": {
+        "properties": {
+          "age_hours": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Hours"
+          },
+          "current": {
+            "default": false,
+            "title": "Current",
+            "type": "boolean"
+          },
+          "evidence_class": {
+            "default": "UNAVAILABLE",
+            "title": "Evidence Class",
+            "type": "string"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/WeatherReading"
+            },
+            "title": "Series",
+            "type": "array"
+          },
+          "spatial_scope": {
+            "default": "coarse_forecast_grid",
+            "title": "Spatial Scope",
+            "type": "string"
+          },
+          "stale": {
+            "default": false,
+            "title": "Stale",
+            "type": "boolean"
+          },
+          "status": {
+            "default": "AVAILABLE",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "series"
+        ],
+        "title": "WeatherView",
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -610,8 +1294,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "additionalProperties": true,
-                    "type": "object"
+                    "$ref": "#/components/schemas/CityView"
                   },
                   "title": "Response Cities V1 Cities Get",
                   "type": "array"
@@ -657,9 +1340,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Get City V1 Cities  Identifier  Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/CityView"
                 }
               }
             },
@@ -732,8 +1413,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "additionalProperties": true,
-                    "type": "object"
+                    "$ref": "#/components/schemas/DatasetView"
                   },
                   "title": "Response Datasets V1 Cities  Identifier  Datasets Get",
                   "type": "array"
@@ -833,9 +1513,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Features V1 Cities  Identifier  Features Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/FeatureCollection"
                 }
               }
             },
@@ -878,9 +1556,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Landcover V1 Cities  Identifier  Landcover Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/LandcoverView"
                 }
               }
             },
@@ -945,9 +1621,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Air V1 Cities  Identifier  Observations Air Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/AirView"
                 }
               }
             },
@@ -1024,9 +1698,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Weather V1 Cities  Identifier  Observations Weather Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/WeatherView"
                 }
               }
             },

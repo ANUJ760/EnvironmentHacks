@@ -7,6 +7,14 @@ from geoalchemy2.shape import from_shape, to_shape
 from shapely.geometry import mapping
 from sqlalchemy import func, select
 
+from ecotwin.api.schemas import (
+    AirView,
+    CityView,
+    DatasetView,
+    FeatureCollection,
+    LandcoverView,
+    WeatherView,
+)
 from ecotwin.db.models import (
     AirObservation,
     AirStation,
@@ -65,7 +73,7 @@ def city_document(session, row):
     }
 
 
-@router.get("/cities", response_model=list[dict])
+@router.get("/cities", response_model=list[CityView])
 def cities(
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     cursor: UUID | None = None,
@@ -77,12 +85,12 @@ def cities(
     return [city_document(session, row) for row in session.scalars(query.limit(limit))]
 
 
-@router.get("/cities/{identifier}", response_model=dict)
+@router.get("/cities/{identifier}", response_model=CityView)
 def get_city(identifier: UUID, session=Depends(session_dependency)):
     return city_document(session, city_row(session, identifier))
 
 
-@router.get("/cities/{identifier}/features", response_model=dict)
+@router.get("/cities/{identifier}/features", response_model=FeatureCollection)
 def features(
     identifier: UUID,
     bbox: str,
@@ -130,7 +138,7 @@ def features(
     }
 
 
-@router.get("/cities/{identifier}/landcover", response_model=dict)
+@router.get("/cities/{identifier}/landcover", response_model=LandcoverView)
 def landcover(identifier: UUID, session=Depends(session_dependency)):
     city = city_row(session, identifier)
     snapshot = active_snapshot(session, identifier)
@@ -147,7 +155,7 @@ def landcover(identifier: UUID, session=Depends(session_dependency)):
     }
 
 
-@router.get("/cities/{identifier}/datasets", response_model=list[dict])
+@router.get("/cities/{identifier}/datasets", response_model=list[DatasetView])
 def datasets(
     identifier: UUID,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
@@ -181,7 +189,7 @@ def datasets(
     ]
 
 
-@router.get("/cities/{identifier}/observations/weather", response_model=dict)
+@router.get("/cities/{identifier}/observations/weather", response_model=WeatherView)
 def weather(
     identifier: UUID,
     start: datetime | None = None,
@@ -234,7 +242,7 @@ def weather(
     }
 
 
-@router.get("/cities/{identifier}/observations/air", response_model=dict)
+@router.get("/cities/{identifier}/observations/air", response_model=AirView)
 def air(
     identifier: UUID,
     parameter: str = "pm25",

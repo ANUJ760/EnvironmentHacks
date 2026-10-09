@@ -416,3 +416,71 @@ def work(once: bool = typer.Option(False)):
     from ecotwin.jobs.worker import run_worker
 
     run_worker(once=once)
+
+
+@ingest.command("landsat")
+def landsat(
+    city: str = typer.Option(...),
+    scene_dir: Path = typer.Option(...),
+    manifest: Path = typer.Option(...),
+):
+    import rasterio
+    from rasterio.warp import transform_bounds
+    from shapely.geometry import box
+
+    from ecotwin.ingestion.landsat import surface_temperature
+
+    metadata = json.loads(manifest.read_text())
+    with session_factory()() as session:
+        area = city_by_slug(session, city)
+        boundary = to_shape(area.boundary)
+        values, affine, crs = surface_temperature(scene_dir, metadata, boundary)
+        import tempfile
+
+        cache = get_settings().ecotwin_cache_dir
+        cache.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(dir=cache, suffix=".tif", delete=False) as temporary:
+            path = Path(temporary.name)
+        with rasterio.open(
+            path,
+            "w",
+            driver="GTiff",
+            height=values.shape[0],
+            width=values.shape[1],
+            count=1,
+            dtype="float64",
+            crs=crs,
+            transform=affine,
+            nodata=-9999,
+        ) as raster:
+            raster.write(values.filled(-9999), 1)
+            coverage = box(*transform_bounds(crs, "EPSG:4326", *raster.bounds)).intersection(
+                boundary
+            )
+        revision, created = register_object(
+            session,
+            area,
+            "landsat",
+            path,
+            coverage,
+            {
+                "crs": str(crs),
+                "unit": "K",
+                "acquired_at": metadata["acquired_at"],
+                "scene_id": metadata["scene_id"],
+                "scale_factor": metadata["scale_factor"],
+                "add_offset": metadata["add_offset"],
+                "interpretation": "surface_not_air_temperature",
+            },
+            metadata["source_url"],
+            (
+                "USGS Landsat",
+                metadata["source_license"],
+                metadata["attribution"],
+                metadata["source_url"],
+            ),
+        )
+        if created:
+            successful_run(session, revision, int(values.count()))
+        session.commit()
+        output({"revision_id": revision.id, "valid_pixels": int(values.count()), "unit": "K"})

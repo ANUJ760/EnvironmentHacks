@@ -10,3 +10,4 @@ enable_services = false
 image_uri = ""
 database_secret_arns = {}
 ingest_city_slug = ""
+enable_tasks = false

@@ -2,7 +2,7 @@
 
 import json
 import os
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -24,6 +24,7 @@ from ecotwin.db.models import (
     WeatherHour,
 )
 from ecotwin.db.session import session_factory
+from ecotwin.jobs.db_queue import claim
 from ecotwin.simulation.command import canonical_digest
 from ecotwin.simulation.orchestrator import execute
 from ecotwin.spatial.city_snapshot import publish_snapshot
@@ -248,3 +249,79 @@ def test_snapshot_immutability_and_spatial_index(seeded):
                 {"city": city_id},
             )
             session.commit()
+
+
+def test_worker_subprocess_and_job_cancellation(seeded):
+    settings, city_id, snapshot_id, geom = seeded
+    from ecotwin.jobs.processor import process_job
+
+    with TestClient(app) as client:
+        headers = auth(settings, "worker-test-" + uuid4().hex)
+        scenario = client.post(
+            "/v1/scenarios",
+            headers=headers,
+            json={"city_id": str(city_id), "snapshot_id": str(snapshot_id), "name": "worker"},
+        ).json()
+        response = client.post(
+            f"/v1/scenarios/{scenario['id']}/simulate",
+            headers={**headers, "Idempotency-Key": uuid4().hex},
+            json={"requested_models": ["runoff_screen"], "event_rainfall_mm": 50},
+        )
+        job_id = response.json()["job_id"]
+        worker_id = uuid4().hex
+        with session_factory()() as session:
+            # Other tests may leave queued jobs; claim the tested job using a distinct old timestamp.
+            session.execute(
+                text("UPDATE simulation_jobs SET created_at='2000-01-01' WHERE id=:id"),
+                {"id": job_id},
+            )
+            session.commit()
+            job = claim(session, worker_id, settings, job_id=job_id)
+            assert str(job.id) == job_id
+        process_job(job, worker_id, settings)
+        status = client.get("/v1/jobs/" + job_id, headers=headers).json()
+        assert status["state"] == "SUCCEEDED", status
+        assert (
+            client.get("/v1/results/" + status["result_id"], headers=headers).json()["metrics"][0][
+                "scenario_value"
+            ]
+            >= 0
+        )
+        duplicate = client.post(
+            f"/v1/scenarios/{scenario['id']}/simulate",
+            headers={**headers, "Idempotency-Key": uuid4().hex},
+            json={"requested_models": ["landcover_summary"]},
+        ).json()["job_id"]
+        canceled = client.post("/v1/jobs/" + duplicate + "/cancel", headers=headers, json={})
+        assert canceled.status_code == 200 and canceled.json()["state"] == "CANCELED"
+
+
+def test_expired_lease_recovery_and_retry_cap(seeded):
+    settings, city_id, snapshot_id, _ = seeded
+    from ecotwin.db.models import Scenario, UserAccount
+    from ecotwin.jobs.db_queue import submit
+
+    with session_factory()() as session:
+        user = UserAccount(identity_issuer="test", identity_subject=uuid4().hex)
+        session.add(user)
+        session.flush()
+        scenario = Scenario(
+            snapshot_id=snapshot_id,
+            owner_user_id=user.id,
+            name="lease-test",
+            updated_at=datetime.now(UTC),
+            scenario_sha256="b" * 64,
+        )
+        session.add(scenario)
+        session.flush()
+        job = submit(
+            session, scenario, user.id, uuid4().hex, {"requested_models": ["landcover_summary"]}, []
+        )
+        job.state = "RUNNING"
+        job.attempt = settings.worker_max_attempts
+        job.locked_until = datetime.now(UTC) - timedelta(seconds=5)
+        job.worker_id = "dead-worker"
+        session.commit()
+        claim(session, "new-worker", settings)
+        session.refresh(job)
+        assert job.state == "FAILED" and job.error_code == "RETRY_LIMIT_EXCEEDED"

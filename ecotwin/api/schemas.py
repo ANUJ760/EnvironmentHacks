@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ecotwin.models.landcover import CLASS_CODES
+from ecotwin.models.types import Metric
 
 
 class StrictModel(BaseModel):
@@ -111,7 +112,102 @@ class ResultView(BaseModel):
     input_digest: str
     output_digest: str
     model_versions: dict[str, str]
-    metrics: list[dict[str, Any]]
+    metrics: list[Metric]
     warnings: list[str]
     evidence: dict[str, Any]
     created_at: datetime
+
+
+class CityView(BaseModel):
+    id: UUID
+    slug: str
+    display_name: str
+    boundary: dict[str, Any]
+    analysis_srid: int
+    timezone: str
+    status: str
+    active_snapshot_id: UUID | None
+    capabilities: list[str]
+
+
+class GeoFeatureView(BaseModel):
+    type: Literal["Feature"] = "Feature"
+    id: UUID
+    geometry: dict[str, Any]
+    properties: dict[str, Any]
+
+
+class FeatureCollection(BaseModel):
+    type: Literal["FeatureCollection"] = "FeatureCollection"
+    features: list[GeoFeatureView]
+    next_cursor: UUID | None
+
+
+class DatasetView(BaseModel):
+    id: UUID
+    kind: str
+    provider: str
+    source_url: str
+    sha256: str
+    byte_size: int
+    source_license: str
+    attribution: str
+    acquired_at: datetime
+    coverage: dict[str, Any] | None
+    status: str
+    quality: dict[str, Any]
+
+
+class LandcoverView(BaseModel):
+    reference_year: Literal[2021] = 2021
+    class_areas_m2: dict[int, float]
+    class_percentages: dict[int, float]
+    covered_area_m2: float
+    city_area_m2: float
+    source_revision_ids: list[UUID]
+    limitations: list[str]
+
+
+class WeatherReading(BaseModel):
+    valid_at: datetime
+    issued_at: datetime
+    temperature_c: float | None
+    rain_mm: float | None
+    humidity_pct: float | None
+    wind_mps: float | None
+    ghi_w_m2: float | None
+    model_name: str
+    source_lat: float
+    source_lon: float
+
+
+class WeatherView(BaseModel):
+    evidence_class: str = "UNAVAILABLE"
+    status: str = "AVAILABLE"
+    reason_code: str | None = None
+    spatial_scope: str = "coarse_forecast_grid"
+    age_hours: float | None = None
+    stale: bool = False
+    current: bool = False
+    series: list[WeatherReading]
+
+
+class AirReading(BaseModel):
+    station_id: UUID
+    station_name: str
+    location: dict[str, Any]
+    parameter: str
+    value: float
+    unit: str
+    measured_at: datetime
+    source_url: str
+    revision_id: UUID
+    stale: bool
+    distance_from_city_centroid_m: float
+
+
+class AirView(BaseModel):
+    evidence_class: str
+    reason_code: str | None
+    spatial_scope: Literal["station_only"]
+    readings: list[AirReading]

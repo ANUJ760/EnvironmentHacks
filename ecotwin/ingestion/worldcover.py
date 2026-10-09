@@ -42,11 +42,14 @@ def raster_cells(path: Path, boundary, srid, limit=2_000_000):
             )
         bounds = transform_bounds("EPSG:4326", source.crs, *boundary.bounds)
         try:
-            window = (
-                from_bounds(*bounds, transform=source.transform)
-                .round_offsets()
-                .round_lengths()
-                .intersection(rasterio.windows.Window(0, 0, source.width, source.height))
+            raw_window = from_bounds(*bounds, transform=source.transform)
+            left, top = math.floor(raw_window.col_off), math.floor(raw_window.row_off)
+            right, bottom = (
+                math.ceil(raw_window.col_off + raw_window.width),
+                math.ceil(raw_window.row_off + raw_window.height),
+            )
+            window = rasterio.windows.Window(left, top, right - left, bottom - top).intersection(
+                rasterio.windows.Window(0, 0, source.width, source.height)
             )
         except rasterio.errors.WindowError as exc:
             raise TwinError(
