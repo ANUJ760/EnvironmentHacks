@@ -3,8 +3,8 @@
 from alembic import op
 from sqlalchemy import text
 
-from ecotwin.db import models  # noqa: F401
-from ecotwin.db.base import Base
+from migrations import initial_schema  # noqa: F401
+from migrations.initial_base import Base
 
 revision = "0001"
 down_revision = None
@@ -51,6 +51,7 @@ def upgrade():
           IF EXISTS(SELECT 1 FROM city_snapshots WHERE COALESCE(OLD.revision_id,NEW.revision_id)=ANY(dataset_revision_ids)) THEN
             RAISE EXCEPTION 'snapshot source rows are immutable';
           END IF;
+          IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
           RETURN NEW;
         END $$""")
         op.execute(

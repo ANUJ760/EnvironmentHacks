@@ -1,5 +1,6 @@
 """Validated configuration. No network or secret discovery on import."""
 
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -84,6 +85,10 @@ class Settings(BaseSettings):
                 "Uncalibrated causal heat predictions and unverified data are forbidden"
             )
         if self.app_env == "production":
+            if os.environ.get("AWS_ACCESS_KEY_ID") or os.environ.get("AWS_SECRET_ACCESS_KEY"):
+                raise ValueError("Production uses IAM task roles, not ambient AWS keys")
+            if "*" in self.cors_allowed_origins:
+                raise ValueError("Explicit production origins required")
             if (
                 self.auth_mode != "cognito"
                 or self.ecotwin_storage_mode != "s3"

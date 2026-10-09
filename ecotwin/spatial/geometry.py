@@ -5,9 +5,9 @@ import math
 from typing import Any
 
 from pyproj import CRS, Transformer
+from shapely import transform
 from shapely.geometry import box, shape
 from shapely.geometry.base import BaseGeometry
-from shapely.ops import transform
 
 from ecotwin.errors import TwinError
 
@@ -52,7 +52,9 @@ def project(geom: BaseGeometry, srid: int) -> BaseGeometry:
     crs = CRS.from_epsg(srid)
     if not crs.is_projected or any(axis.unit_name != "metre" for axis in crs.axis_info):
         raise TwinError("INVALID_GEOMETRY", "Analysis CRS must be projected in meters")
-    return transform(Transformer.from_crs(4326, srid, always_xy=True).transform, geom)
+    return transform(
+        geom, Transformer.from_crs(4326, srid, always_xy=True).transform, interleaved=False
+    )
 
 
 def validate_area(geom: BaseGeometry, srid: int, maximum_km2: float = 25) -> float:

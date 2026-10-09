@@ -7,8 +7,9 @@ import rasterio
 from pyproj import Transformer
 from rasterio.warp import transform_bounds
 from rasterio.windows import from_bounds
+from shapely import transform
 from shapely.geometry import Polygon
-from shapely.ops import transform, unary_union
+from shapely.ops import unary_union
 
 from ecotwin.errors import TwinError
 from ecotwin.models.landcover import CLASS_CODES
@@ -60,12 +61,14 @@ def raster_cells(path: Path, boundary, srid, limit=2_000_000):
         for row in range(band.shape[0]):
             for col in range(band.shape[1]):
                 corners = [
-                    affine * (col, row),
-                    affine * (col + 1, row),
-                    affine * (col + 1, row + 1),
-                    affine * (col, row + 1),
+                    affine @ (col, row),
+                    affine @ (col + 1, row),
+                    affine @ (col + 1, row + 1),
+                    affine @ (col, row + 1),
                 ]
-                geom = transform(transformer.transform, Polygon(corners)).intersection(boundary)
+                geom = transform(
+                    Polygon(corners), transformer.transform, interleaved=False
+                ).intersection(boundary)
                 if geom.is_empty:
                     continue
                 area = project(geom, srid).area
@@ -83,6 +86,11 @@ def raster_cells(path: Path, boundary, srid, limit=2_000_000):
                 if code not in CLASS_CODES:
                     raise TwinError("UPSTREAM_PAYLOAD_INVALID", "Unknown WorldCover class code")
                 polygons = [geom] if geom.geom_type == "Polygon" else list(geom.geoms)
+                if sum(part.geom_type == "Polygon" and not part.is_empty for part in polygons) > 1:
+                    raise TwinError(
+                        "MODEL_INPUT_UNSUPPORTED",
+                        "Disconnected clipped cells require a raster-backed grid",
+                    )
                 for part in polygons:
                     if part.geom_type != "Polygon" or part.is_empty:
                         continue

@@ -1,0 +1,104 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "city_id": {
+      "title": "City Id",
+      "type": "string"
+    },
+    "source_url": {
+      "title": "Source Url",
+      "type": "string"
+    },
+    "sha256": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Sha256",
+      "type": "string"
+    },
+    "byte_size": {
+      "minimum": 0,
+      "title": "Byte Size",
+      "type": "integer"
+    },
+    "media_type": {
+      "title": "Media Type",
+      "type": "string"
+    },
+    "crs": {
+      "title": "Crs",
+      "type": "string"
+    },
+    "coverage": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Coverage"
+    },
+    "native_units": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Native Units",
+      "type": "object"
+    },
+    "normalized_units": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Normalized Units",
+      "type": "object"
+    },
+    "captured_at": {
+      "format": "date-time",
+      "title": "Captured At",
+      "type": "string"
+    },
+    "source_license": {
+      "minLength": 1,
+      "title": "Source License",
+      "type": "string"
+    },
+    "attribution": {
+      "minLength": 1,
+      "title": "Attribution",
+      "type": "string"
+    },
+    "processing_version": {
+      "title": "Processing Version",
+      "type": "string"
+    },
+    "upstream_revision": {
+      "title": "Upstream Revision",
+      "type": "string"
+    }
+  },
+  "required": [
+    "city_id",
+    "source_url",
+    "sha256",
+    "byte_size",
+    "media_type",
+    "crs",
+    "coverage",
+    "native_units",
+    "normalized_units",
+    "captured_at",
+    "source_license",
+    "attribution",
+    "processing_version",
+    "upstream_revision"
+  ],
+  "title": "DatasetManifest",
+  "type": "object"
+}

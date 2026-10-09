@@ -47,6 +47,10 @@ class S3ObjectStore:
                 raise TwinError(
                     "STORAGE_PERMISSION_DENIED", "S3 credentials or permissions rejected", 503
                 ) from exc
+            if code in {"PreconditionFailed", "412", "ConditionalRequestConflict"}:
+                raise TwinError(
+                    "OBJECT_ALREADY_EXISTS", "Conditional object write refused", 409
+                ) from exc
             if code in {"NoSuchKey", "404", "NotFound"}:
                 raise TwinError("DATASET_NOT_FOUND", "Pinned object is missing", 404) from exc
             raise TwinError("STORAGE_UNAVAILABLE", "S3 service unavailable", 503) from exc
@@ -82,7 +86,9 @@ class S3ObjectStore:
                     ServerSideEncryption="AES256",
                     Metadata={"sha256": sha256},
                 )
-            except TwinError:
+            except TwinError as exc:
+                if exc.code != "OBJECT_ALREADY_EXISTS":
+                    raise
                 if not self.exists(key):
                     raise
                 # Verify bytes, not solely mutable metadata.

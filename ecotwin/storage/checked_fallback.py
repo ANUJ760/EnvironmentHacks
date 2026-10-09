@@ -30,6 +30,8 @@ class CheckedFallbackObjectStore:
         return self.materialize(key, self.digests[key]).open("rb")
 
     def exists(self, key):
+        if key not in self.digests:
+            raise TwinError("DATASET_NOT_READY", "Manifest digest required")
         try:
             self.materialize(key, self.digests[key])
             return True
