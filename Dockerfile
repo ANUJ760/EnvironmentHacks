@@ -2,9 +2,10 @@ FROM python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0
 WORKDIR /app
 RUN pip install --no-cache-dir uv==0.12.19
 COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv UV_HTTP_TIMEOUT=120 uv sync --frozen --no-dev --no-install-project
 COPY ecotwin ./ecotwin
 COPY model_parameters ./model_parameters
-RUN uv sync --frozen --no-dev --no-editable
+RUN --mount=type=cache,target=/root/.cache/uv UV_HTTP_TIMEOUT=120 uv sync --frozen --no-dev --no-editable
 
 FROM python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
 ARG GIT_REVISION=unknown

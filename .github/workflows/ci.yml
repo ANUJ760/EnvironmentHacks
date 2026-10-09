@@ -40,4 +40,4 @@ jobs:
         working-directory: frontend
       - run: uv run pip-audit
       - run: docker build -t ecotwin-backend:ci . && docker run --rm ecotwin-backend:ci ecotwin --help
-      - run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.61.1 image --exit-code 1 --severity HIGH,CRITICAL ecotwin-backend:ci
+      - run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.61.1@sha256:91bcccab7cb503127b0d792db7c652c4e556c9ff30eeb0908b6ae1980d7727ad image --exit-code 1 --severity HIGH,CRITICAL ecotwin-backend:ci
