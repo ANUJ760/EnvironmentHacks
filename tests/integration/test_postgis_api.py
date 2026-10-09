@@ -606,7 +606,7 @@ def test_bad_geometry_api_bodies_and_outside_edits(seeded):
         )
 
 
-def test_worker_terminal_error_retry_and_hard_timeout(seeded, monkeypatch):
+def test_worker_terminal_model_error(seeded, monkeypatch):
     settings, city_id, snapshot_id, geom = seeded
     from ecotwin.db.models import Scenario, UserAccount
     from ecotwin.jobs.db_queue import submit
@@ -738,3 +738,53 @@ def test_failed_import_audit_and_operator_requeue(seeded, tmp_path):
                 AuditEvent.resource_id == identifier, AuditEvent.action == "operator_job_requeued"
             )
         )
+
+
+def slow_child_for_timeout(frozen, pipe):
+    import time
+
+    time.sleep(10)
+
+
+def test_worker_enforces_deadline_and_shutdown_retry(seeded, monkeypatch):
+    import time
+
+    import ecotwin.jobs.processor as processor
+    from ecotwin.db.models import Scenario, UserAccount
+    from ecotwin.jobs.db_queue import submit
+
+    settings, city_id, snapshot_id, _ = seeded
+    with session_factory()() as session:
+        user = UserAccount(identity_issuer="deadline-test", identity_subject=uuid4().hex)
+        session.add(user)
+        session.flush()
+        scenario = Scenario(
+            snapshot_id=snapshot_id,
+            owner_user_id=user.id,
+            name="deadline",
+            updated_at=datetime.now(UTC),
+            scenario_sha256="d" * 64,
+        )
+        session.add(scenario)
+        session.flush()
+        job = submit(
+            session, scenario, user.id, uuid4().hex, {"requested_models": ["landcover_summary"]}, []
+        )
+        claimed = claim(session, "deadline-worker", settings, job_id=job.id)
+    monkeypatch.setattr(processor, "child_execute", slow_child_for_timeout)
+    started = time.monotonic()
+    processor.process_job(
+        claimed, "deadline-worker", settings.model_copy(update={"simulation_timeout_seconds": 1})
+    )
+    assert time.monotonic() - started < 5
+    with session_factory()() as session:
+        status = session.get(SimulationJob, job.id)
+        assert status.state == "FAILED" and status.error_code == "SIMULATION_TIMEOUT"
+        retry = submit(
+            session, scenario, user.id, uuid4().hex, {"requested_models": ["landcover_summary"]}, []
+        )
+        claimed = claim(session, "shutdown-worker", settings, job_id=retry.id)
+    processor.process_job(claimed, "shutdown-worker", settings, stop=lambda: True)
+    with session_factory()() as session:
+        status = session.get(SimulationJob, retry.id)
+        assert status.state == "RETRY_WAIT" and status.locked_until is None
