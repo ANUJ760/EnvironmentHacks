@@ -4,6 +4,7 @@ Phase 1: Core deterministic waste-flow and mass/energy balance model.
 Phase 2: Scenario and data layer with validation, synthetic baselines, and structured execution.
 Phase 3: AI forecasting module for waste generation and composition with physics constraints.
 Phase 4: Waste-routing optimization layer for constrained multi-criteria decision making.
+Phase 5: Waste transportation and emissions model with transport-aware optimization.
 """
 
 from ecotwin.balance import EcoTwinEngine, SystemBalanceResult
@@ -50,7 +51,17 @@ from ecotwin.synthetic import (
     generate_baseline_scenario,
     generate_synthetic_city_scenario,
 )
+from ecotwin.transport import (
+    TRANSPORT_BENCHMARK_NOTICE,
+    RouteTransportResult,
+    TransportConfig,
+    TransportEvaluationResult,
+    TransportModel,
+    evaluate_transport,
+)
 from ecotwin.units import (
+    Distance,
+    DistanceUnit,
     Energy,
     EnergyUnit,
     Mass,
@@ -66,6 +77,8 @@ __all__ = [
     "Energy",
     "EnergyUnit",
     "SpecificEnergy",
+    "Distance",
+    "DistanceUnit",
     # Stream & facilities
     "WasteStream",
     "CategoryProcessingProfile",
@@ -98,6 +111,13 @@ __all__ = [
     "WasteRoutingOptimizer",
     "optimize_scenario_routing",
     "LinearProgramSolver",
+    # Transport & emissions model (Phase 5)
+    "TransportConfig",
+    "TransportModel",
+    "RouteTransportResult",
+    "TransportEvaluationResult",
+    "evaluate_transport",
+    "TRANSPORT_BENCHMARK_NOTICE",
     # Exceptions
     "EcoTwinError",
     "PhysicsViolationError",
@@ -106,3 +126,4 @@ __all__ = [
     "InvalidRoutingError",
     "ScenarioValidationError",
 ]
+

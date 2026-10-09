@@ -19,6 +19,120 @@ class EnergyUnit(str, Enum):
     MWH = "MWh"
 
 
+class DistanceUnit(str, Enum):
+    KM = "km"
+    M = "m"
+
+
+@dataclass(frozen=True)
+class Distance:
+    """Represents a physical distance quantity with explicit units."""
+
+    value: float
+    unit: DistanceUnit = DistanceUnit.KM
+
+    def __post_init__(self) -> None:
+        if math.isnan(self.value) or math.isinf(self.value):
+            raise PhysicsViolationError(f"Distance value cannot be NaN or Inf: {self.value}")
+        if self.value < -1e-9:
+            raise PhysicsViolationError(f"Distance cannot be negative: {self.value} {self.unit.value}")
+        if -1e-9 <= self.value < 0.0:
+            object.__setattr__(self, "value", 0.0)
+
+    @classmethod
+    def km(cls, value: float) -> Distance:
+        return cls(value=float(value), unit=DistanceUnit.KM)
+
+    @classmethod
+    def meters(cls, value: float) -> Distance:
+        return cls(value=float(value), unit=DistanceUnit.M)
+
+    @classmethod
+    def zero(cls, unit: DistanceUnit = DistanceUnit.KM) -> Distance:
+        return cls(value=0.0, unit=unit)
+
+    def to_km(self) -> Distance:
+        if self.unit == DistanceUnit.KM:
+            return self
+        return Distance(value=self.value / 1000.0, unit=DistanceUnit.KM)
+
+    def to_meters(self) -> Distance:
+        if self.unit == DistanceUnit.M:
+            return self
+        return Distance(value=self.value * 1000.0, unit=DistanceUnit.M)
+
+    def as_unit(self, unit: DistanceUnit) -> Distance:
+        if unit == DistanceUnit.KM:
+            return self.to_km()
+        elif unit == DistanceUnit.M:
+            return self.to_meters()
+        raise ValueError(f"Unsupported distance unit: {unit}")
+
+    def __add__(self, other: Distance) -> Distance:
+        if not isinstance(other, Distance):
+            return NotImplemented
+        other_in_unit = other.as_unit(self.unit)
+        return Distance(value=self.value + other_in_unit.value, unit=self.unit)
+
+    def __sub__(self, other: Distance) -> Distance:
+        if not isinstance(other, Distance):
+            return NotImplemented
+        other_in_unit = other.as_unit(self.unit)
+        diff = self.value - other_in_unit.value
+        return Distance(value=diff, unit=self.unit)
+
+    def __mul__(self, factor: float) -> Distance:
+        if not isinstance(factor, (int, float)):
+            return NotImplemented
+        if factor < 0:
+            raise PhysicsViolationError(f"Cannot multiply distance by negative factor: {factor}")
+        return Distance(value=self.value * factor, unit=self.unit)
+
+    def __rmul__(self, factor: float) -> Distance:
+        return self.__mul__(factor)
+
+    def __truediv__(self, other: Union[float, Distance]) -> Union[Distance, float]:
+        if isinstance(other, (int, float)):
+            if other <= 0:
+                raise PhysicsViolationError(f"Cannot divide distance by non-positive divisor: {other}")
+            return Distance(value=self.value / other, unit=self.unit)
+        elif isinstance(other, Distance):
+            other_in_unit = other.as_unit(self.unit)
+            if other_in_unit.value == 0:
+                raise ZeroDivisionError("Cannot divide by zero distance.")
+            return self.value / other_in_unit.value
+        return NotImplemented
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Distance):
+            return False
+        return math.isclose(self.to_km().value, other.to_km().value, rel_tol=1e-7, abs_tol=1e-7)
+
+    def __lt__(self, other: Distance) -> bool:
+        if not isinstance(other, Distance):
+            return NotImplemented
+        return self.to_km().value < other.to_km().value - 1e-7
+
+    def __le__(self, other: Distance) -> bool:
+        if not isinstance(other, Distance):
+            return NotImplemented
+        return self.to_km().value <= other.to_km().value + 1e-7
+
+    def __gt__(self, other: Distance) -> bool:
+        if not isinstance(other, Distance):
+            return NotImplemented
+        return self.to_km().value > other.to_km().value + 1e-7
+
+    def __ge__(self, other: Distance) -> bool:
+        if not isinstance(other, Distance):
+            return NotImplemented
+        return self.to_km().value >= other.to_km().value - 1e-7
+
+    def __repr__(self) -> str:
+        return f"Distance({self.value:.4f} {self.unit.value})"
+
+
+
 @dataclass(frozen=True)
 class Mass:
     """Represents a physical mass quantity with explicit units."""

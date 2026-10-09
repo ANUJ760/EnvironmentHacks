@@ -34,12 +34,15 @@ class OptimizationWeights:
     J = (w_mat * M_recovered / M_total) 
         - (w_landfill * M_landfill / M_total) 
         + (w_energy * E_recovered_MWh / (M_total_tonnes * ref_energy_MWh_per_tonne))
+        - (w_transport * total_transport_km / (M_total_tonnes * ref_transport_km_per_tonne))
     """
 
     material_recovery_weight: float = 1.0
     landfill_penalty_weight: float = 1.0
     energy_recovery_weight: float = 0.5
     energy_reference_mwh_per_tonne: float = 1.0
+    transport_penalty_weight: float = 0.0
+    transport_reference_km_per_tonne: float = 1.0
 
     def __post_init__(self) -> None:
         if self.material_recovery_weight < 0:
@@ -50,11 +53,22 @@ class OptimizationWeights:
             raise ValueError("energy_recovery_weight cannot be negative.")
         if self.energy_reference_mwh_per_tonne <= 0:
             raise ValueError("energy_reference_mwh_per_tonne must be positive.")
+        if self.transport_penalty_weight < 0:
+            raise ValueError("transport_penalty_weight cannot be negative.")
+        if self.transport_reference_km_per_tonne <= 0:
+            raise ValueError("transport_reference_km_per_tonne must be positive.")
 
-    def calculate_score(self, simulation_result: SystemBalanceResult | ScenarioExecutionResult) -> float:
-        """Computes the scalar objective score from simulation results."""
+    def calculate_score(
+        self,
+        simulation_result: SystemBalanceResult | ScenarioExecutionResult,
+        transport_result: Optional[Any] = None,
+    ) -> float:
+        """Computes the scalar objective score from simulation results and optional transport evaluation."""
         if isinstance(simulation_result, ScenarioExecutionResult):
             res = simulation_result.system_balance_result
+            # Auto-extract transport_result from ScenarioExecutionResult if available
+            if transport_result is None:
+                transport_result = simulation_result.transport_result
         else:
             res = simulation_result
 
@@ -75,6 +89,13 @@ class OptimizationWeights:
             - (self.landfill_penalty_weight * landfill_frac)
             + (self.energy_recovery_weight * energy_norm)
         )
+
+        # Transport penalty: higher total_distance_km penalizes the score
+        if self.transport_penalty_weight > 0.0 and transport_result is not None:
+            total_dist_km = transport_result.total_distance.to_km().value
+            transport_norm = (total_dist_km / total_tonnes) / self.transport_reference_km_per_tonne if total_tonnes > 0 else 0.0
+            score -= self.transport_penalty_weight * transport_norm
+
         return float(score)
 
 
@@ -466,12 +487,22 @@ class WasteRoutingOptimizer:
                 # Energy yield in MWh / tonne
                 e_yield_mwh_per_t = (profile.specific_energy.kwh_per_tonne / 1000.0) * profile.energy_efficiency
 
-                # Linear utility per unit mass
+                # Linear utility per unit mass (recovery + energy - landfill)
                 u_cf = (
                     (self.weights.material_recovery_weight * r_mat)
                     - (self.weights.landfill_penalty_weight * r_landfill)
                     + (self.weights.energy_recovery_weight * (e_yield_mwh_per_t / self.weights.energy_reference_mwh_per_tonne))
                 )
+
+                # Transport distance penalty per unit mass routed to this facility
+                if self.weights.transport_penalty_weight > 0.0:
+                    fac_dist_km = fac.distance_km
+                    # Trips for this category-facility pair: ceil(cat_mass * frac / payload) * dist
+                    # Linearized: approximate as (cat_mass / payload) * dist per unit fraction
+                    # => normalized penalty per unit mass
+                    transport_penalty_per_t = (fac_dist_km / self.weights.transport_reference_km_per_tonne)
+                    u_cf -= self.weights.transport_penalty_weight * transport_penalty_per_t
+
                 c_obj[idx] = cat_mass_tonnes * u_cf
 
         # 3. Constraints:

@@ -17,7 +17,8 @@ from ecotwin.exceptions import (
 from ecotwin.facility import FacilityResult, ProcessingFacility
 from ecotwin.routing import RouteSplit, RoutingPlan
 from ecotwin.stream import WasteStream
-from ecotwin.units import Energy, EnergyUnit, Mass, MassUnit
+from ecotwin.transport import TransportConfig, TransportEvaluationResult, TransportModel
+from ecotwin.units import Distance, Energy, EnergyUnit, Mass, MassUnit
 
 
 @dataclass(frozen=True)
@@ -25,7 +26,8 @@ class ScenarioExecutionResult:
     """
     Structured execution result from running an UrbanScenario through the EcoTwin simulation engine.
     
-    Contains system-level metrics, mass conservation audit, facility utilization, and full balance results.
+    Contains system-level metrics, mass conservation audit, facility utilization, full balance results,
+    and optional logistics transport & emissions evaluation.
     """
 
     scenario_name: str
@@ -43,14 +45,16 @@ class ScenarioExecutionResult:
     facility_results: Dict[str, FacilityResult]
     mass_balance_error: Mass
     mass_balance_error_kg: float
+    transport_result: Optional[TransportEvaluationResult] = None
 
     @classmethod
     def from_balance_result(
         cls,
         scenario: UrbanScenario,
         balance_result: SystemBalanceResult,
+        transport_result: Optional[TransportEvaluationResult] = None,
     ) -> ScenarioExecutionResult:
-        """Constructs a ScenarioExecutionResult from an UrbanScenario and SystemBalanceResult."""
+        """Constructs a ScenarioExecutionResult from an UrbanScenario, SystemBalanceResult, and TransportEvaluationResult."""
         total_in_kg = balance_result.total_incoming_mass.to_kg().value
         sum_out_kg = (
             balance_result.total_material_recovered.to_kg().value
@@ -89,26 +93,48 @@ class ScenarioExecutionResult:
             facility_results=dict(balance_result.facility_results),
             mass_balance_error=mass_error,
             mass_balance_error_kg=error_kg,
+            transport_result=transport_result,
         )
 
+    @property
+    def total_vehicle_trips(self) -> int:
+        return self.transport_result.total_trips if self.transport_result else 0
+
+    @property
+    def total_transport_distance(self) -> Distance:
+        return self.transport_result.total_distance if self.transport_result else Distance.zero()
+
+    @property
+    def total_transport_energy(self) -> Energy:
+        return self.transport_result.total_transport_energy if self.transport_result else Energy.zero()
+
+    @property
+    def total_transport_emissions(self) -> Mass:
+        return self.transport_result.total_transport_emissions if self.transport_result else Mass.zero()
+
     def summary(self) -> Dict[str, Any]:
-        """Returns a structured dictionary summarizing system-level metrics and facility performances."""
+        """Returns a structured dictionary summarizing system-level metrics, transport, and facility performances."""
         unit_m = self.total_waste_processed.unit.value
         unit_e = self.total_energy_recovered.unit.value
+
+        metrics: Dict[str, Any] = {
+            "total_waste_processed": f"{self.total_waste_processed.value:.2f} {unit_m}",
+            "total_material_recovered": f"{self.total_material_recovered.as_unit(self.total_waste_processed.unit).value:.2f} {unit_m}",
+            "total_landfill_residue": f"{self.total_landfill_residue.as_unit(self.total_waste_processed.unit).value:.2f} {unit_m}",
+            "total_process_loss": f"{self.total_process_loss.as_unit(self.total_waste_processed.unit).value:.2f} {unit_m}",
+            "total_energy_recovered": f"{self.total_energy_recovered.value:.2f} {unit_e}",
+            "material_recovery_rate_pct": round(self.material_recovery_rate * 100.0, 2),
+            "landfill_diversion_rate_pct": round(self.landfill_diversion_rate * 100.0, 2),
+            "mass_balance_error_kg": self.mass_balance_error_kg,
+        }
+
+        if self.transport_result is not None:
+            metrics["transport"] = self.transport_result.summary()
 
         return {
             "scenario_name": self.scenario_name,
             "metadata": self.scenario_metadata,
-            "metrics": {
-                "total_waste_processed": f"{self.total_waste_processed.value:.2f} {unit_m}",
-                "total_material_recovered": f"{self.total_material_recovered.as_unit(self.total_waste_processed.unit).value:.2f} {unit_m}",
-                "total_landfill_residue": f"{self.total_landfill_residue.as_unit(self.total_waste_processed.unit).value:.2f} {unit_m}",
-                "total_process_loss": f"{self.total_process_loss.as_unit(self.total_waste_processed.unit).value:.2f} {unit_m}",
-                "total_energy_recovered": f"{self.total_energy_recovered.value:.2f} {unit_e}",
-                "material_recovery_rate_pct": round(self.material_recovery_rate * 100.0, 2),
-                "landfill_diversion_rate_pct": round(self.landfill_diversion_rate * 100.0, 2),
-                "mass_balance_error_kg": self.mass_balance_error_kg,
-            },
+            "metrics": metrics,
             "facility_utilization_pct": {
                 name: round(util * 100.0, 2) for name, util in self.facility_utilizations.items()
             },
@@ -147,9 +173,18 @@ class ScenarioExecutionResult:
             f"  * Energy Recovered            : {self.total_energy_recovered.value:.2f} {self.total_energy_recovered.unit.value}",
             f"  * Landfill Diversion Rate     : {self.landfill_diversion_rate * 100:.2f}%",
             f"  * Mass Balance Closure Error  : {self.mass_balance_error_kg:.8f} kg (Passed)",
-            "\n[Facility Utilization & Output Breakdown]",
         ])
 
+        if self.transport_result is not None:
+            lines.extend([
+                "\n[Transportation & Emissions Logistics]",
+                f"  * Vehicle Fleet Trips         : {self.transport_result.total_trips} trips",
+                f"  * Total Transport Distance    : {self.transport_result.total_distance.to_km().value:.2f} km",
+                f"  * Total Transport Energy      : {self.transport_result.total_transport_energy.to_kwh().value:.2f} kWh ({self.transport_result.total_transport_energy.to_mwh().value:.4f} MWh)",
+                f"  * Total Transport CO2         : {self.transport_result.total_transport_emissions.to_kg().value:.2f} kg CO2 ({self.transport_result.total_transport_emissions.to_tonnes().value:.4f} t CO2)",
+            ])
+
+        lines.append("\n[Facility Utilization & Output Breakdown]")
         for name, res in self.facility_results.items():
             util_pct = self.facility_utilizations.get(name, 0.0) * 100.0
             lines.append(f"  Facility: {name} [Capacity Utilization: {util_pct:.1f}%]")
@@ -171,9 +206,9 @@ class UrbanScenario:
     Encapsulates:
     - Municipal daily waste generation quantity (with explicit unit)
     - Waste composition fractions
-    - Processing facility configurations and capacities
+    - Processing facility configurations, capacities, and locations/distances
     - Waste routing plan across facilities
-    - Scenario name, description, and metadata (including synthetic baseline assumptions)
+    - Scenario name, description, metadata, and optional fleet transport config
     """
 
     name: str
@@ -183,6 +218,7 @@ class UrbanScenario:
     routing_plan: RoutingPlan
     metadata: Dict[str, Any] = field(default_factory=dict)
     description: str = ""
+    transport_config: Optional[TransportConfig] = None
 
     def __post_init__(self) -> None:
         # Validate scenario name
@@ -250,6 +286,7 @@ class UrbanScenario:
         routing_plan: RoutingPlan | Mapping[WasteCategory | str, Sequence[tuple[str, float] | RouteSplit]] | Mapping[WasteCategory | str, str],
         metadata: Optional[Dict[str, Any]] = None,
         description: str = "",
+        transport_config: Optional[TransportConfig] = None,
     ) -> UrbanScenario:
         """
         Convenience factory to create an UrbanScenario supporting flexible mappings.
@@ -291,6 +328,7 @@ class UrbanScenario:
             routing_plan=parsed_routing,
             metadata=dict(metadata or {}),
             description=description,
+            transport_config=transport_config,
         )
 
     def validate(self) -> None:
@@ -364,8 +402,9 @@ class UrbanScenario:
         """Builds an EcoTwinEngine initialized with this scenario's facilities."""
         return EcoTwinEngine(self.facilities)
 
-    def calculate_facility_loads(self) -> Dict[str, Mass]:
+    def calculate_facility_loads(self, routing_plan: Optional[RoutingPlan] = None) -> Dict[str, Mass]:
         """Calculates the planned mass allocated to each facility based on generation, composition, and routing."""
+        plan = routing_plan or self.routing_plan
         loads: Dict[str, Mass] = {name: Mass.zero(self.daily_waste_generation.unit) for name in self.facilities}
         stream = self.to_incoming_stream()
         breakdown = stream.breakdown_masses()
@@ -373,14 +412,14 @@ class UrbanScenario:
         for cat, cat_mass in breakdown.items():
             if cat_mass.to_kg().value == 0.0:
                 continue
-            splits = self.routing_plan.routes.get(cat, ())
+            splits = plan.routes.get(cat, ())
             for s in splits:
                 loads[s.facility_name] = loads[s.facility_name] + (cat_mass * s.fraction)
         return loads
 
-    def calculate_facility_utilizations(self) -> Dict[str, float]:
+    def calculate_facility_utilizations(self, routing_plan: Optional[RoutingPlan] = None) -> Dict[str, float]:
         """Calculates the capacity utilization fraction (0.0 to 1.0) for each facility."""
-        loads = self.calculate_facility_loads()
+        loads = self.calculate_facility_loads(routing_plan=routing_plan)
         utilizations: Dict[str, float] = {}
         for fac_name, fac in self.facilities.items():
             cap_kg = fac.capacity.to_kg().value
@@ -390,9 +429,30 @@ class UrbanScenario:
                 utilizations[fac_name] = 0.0
         return utilizations
 
-    def run(self, energy_output_unit: EnergyUnit = EnergyUnit.MWH) -> ScenarioExecutionResult:
+    def evaluate_transport(
+        self,
+        routing_plan: Optional[RoutingPlan] = None,
+        transport_config: Optional[TransportConfig] = None,
+    ) -> TransportEvaluationResult:
         """
-        Executes the scenario through the EcoTwin mass/energy balance engine.
+        Calculates logistics, vehicle trips, transport distance, transport energy, and CO2 emissions
+        for the given or current routing plan.
+        """
+        loads = self.calculate_facility_loads(routing_plan=routing_plan)
+        config = transport_config or self.transport_config or TransportConfig()
+        return TransportModel.evaluate_loads(
+            facility_loads=loads,
+            facilities=self.facilities,
+            config=config,
+        )
+
+    def run(
+        self,
+        energy_output_unit: EnergyUnit = EnergyUnit.MWH,
+        evaluate_transport: bool = True,
+    ) -> ScenarioExecutionResult:
+        """
+        Executes the scenario through the EcoTwin mass/energy balance engine and evaluates transport logistics.
         
         Returns a structured ScenarioExecutionResult containing comprehensive system-level metrics.
         """
@@ -403,9 +463,11 @@ class UrbanScenario:
             routing_plan=self.routing_plan,
             energy_output_unit=energy_output_unit,
         )
+        transport_res = self.evaluate_transport() if evaluate_transport else None
         return ScenarioExecutionResult.from_balance_result(
             scenario=self,
             balance_result=balance_result,
+            transport_result=transport_res,
         )
 
 
