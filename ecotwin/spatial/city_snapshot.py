@@ -12,7 +12,12 @@ from ecotwin.storage.factory import object_store
 def parameter_documents():
     import yaml
 
-    root = Path(__file__).resolve().parents[2] / "model_parameters"
+    package = Path(__file__).resolve().parents[1]
+    root = package / "model_parameters"
+    if not root.is_dir():
+        root = package.parent / "model_parameters"
+    if not root.is_dir():
+        raise TwinError("DATASET_NOT_READY", "Installed model parameter resources are missing")
     return {p.name: yaml.safe_load(p.read_text()) for p in sorted(root.glob("*.yaml"))}
 
 

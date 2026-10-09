@@ -50,8 +50,8 @@ class Settings(BaseSettings):
     cognito_client_id: str = ""
     cognito_aws_region: str = "ap-south-1"
     log_level: str = "INFO"
-    runoff_model_version: str = "runoff-coeff-v1"
-    solar_model_version: str = "solar-screen-v1"
+    runoff_model_version: Literal["runoff-coeff-v1"] = "runoff-coeff-v1"
+    solar_model_version: Literal["solar-screen-v1"] = "solar-screen-v1"
     enable_uncalibrated_heat_prediction: bool = False
 
     @model_validator(mode="after")

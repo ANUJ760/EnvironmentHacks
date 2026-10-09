@@ -604,3 +604,72 @@ def test_bad_geometry_api_bodies_and_outside_edits(seeded):
             ).status_code
             == 422
         )
+
+
+def test_worker_terminal_error_retry_and_hard_timeout(seeded, monkeypatch):
+    settings, city_id, snapshot_id, geom = seeded
+    from ecotwin.db.models import Scenario, UserAccount
+    from ecotwin.jobs.db_queue import submit
+    from ecotwin.jobs.processor import process_job
+
+    with session_factory()() as session:
+        user = UserAccount(identity_issuer="worker-failure", identity_subject=uuid4().hex)
+        session.add(user)
+        session.flush()
+        scenario = Scenario(
+            snapshot_id=snapshot_id,
+            owner_user_id=user.id,
+            name="failure",
+            updated_at=datetime.now(UTC),
+            scenario_sha256="a" * 64,
+        )
+        session.add(scenario)
+        session.flush()
+        job = submit(
+            session, scenario, user.id, uuid4().hex, {"requested_models": ["missing_model"]}, []
+        )
+        claimed = claim(session, "failure-worker", settings, job_id=job.id)
+    process_job(claimed, "failure-worker", settings)
+    with session_factory()() as session:
+        session.refresh(claimed) if claimed in session else None
+        status = session.get(SimulationJob, job.id)
+        assert status.state == "FAILED" and status.error_code == "MODEL_NOT_AVAILABLE"
+
+
+def test_job_quota_and_live_cancellation(seeded, monkeypatch):
+    settings, city_id, snapshot_id, _ = seeded
+    monkeypatch.setenv("MAX_PENDING_JOBS_PER_USER", "1")
+    get_settings.cache_clear()
+    with TestClient(app) as client:
+        headers = auth(get_settings(), "quota-" + uuid4().hex)
+        scenario = client.post(
+            "/v1/scenarios",
+            headers=headers,
+            json={"city_id": str(city_id), "snapshot_id": str(snapshot_id), "name": "quota"},
+        ).json()
+        route = f"/v1/scenarios/{scenario['id']}/simulate"
+        key = uuid4().hex
+        request = {"requested_models": ["landcover_summary"]}
+        first = client.post(route, headers={**headers, "Idempotency-Key": key}, json=request)
+        assert first.status_code == 202
+        assert (
+            client.post(
+                route, headers={**headers, "Idempotency-Key": key}, json=request
+            ).status_code
+            == 202
+        )
+        assert (
+            client.post(
+                route, headers={**headers, "Idempotency-Key": uuid4().hex}, json=request
+            ).status_code
+            == 429
+        )
+        with session_factory()() as session:
+            job = claim(session, "cancel-worker", get_settings(), job_id=first.json()["job_id"])
+        response = client.post("/v1/jobs/" + str(job.id) + "/cancel", headers=headers, json={})
+        assert response.json()["state"] == "CANCEL_REQUESTED"
+        from ecotwin.jobs.processor import process_job
+
+        process_job(job, "cancel-worker", get_settings())
+        assert client.get("/v1/jobs/" + str(job.id), headers=headers).json()["state"] == "CANCELED"
+    get_settings.cache_clear()

@@ -130,3 +130,100 @@ def test_canonical_hash():
     assert canonical_digest({"b": 2, "a": 1}) == canonical_digest({"a": 1, "b": 2})
     with pytest.raises(ValueError):
         canonical_digest({"a": float("nan")})
+
+
+def test_fallback_stream_and_missing_manifest(tmp_path):
+    source = tmp_path / "source"
+    source.write_bytes(b"cache")
+    digest = hashlib.sha256(b"cache").hexdigest()
+    local = LocalObjectStore(tmp_path / "local")
+    local.put_file("raw/source", source, digest)
+    fallback = CheckedFallbackObjectStore(
+        local, local, {"raw/source": digest, "raw/missing": digest}
+    )
+    with fallback.open_read("raw/source") as stream:
+        assert stream.read() == b"cache"
+    assert fallback.exists("raw/source") and not fallback.exists("raw/missing")
+    for function, args in [
+        (fallback.open_read, ("raw/unknown",)),
+        (fallback.exists, ("raw/unknown",)),
+        (fallback.materialize, ("raw/source", "a" * 64)),
+    ]:
+        with pytest.raises(TwinError):
+            function(*args)
+    fallback.put_file("raw/source", source, digest)
+
+
+def test_factory_local_never_constructs_aws(monkeypatch, tmp_path):
+    import ecotwin.storage.s3 as cloud
+    from ecotwin.storage.factory import object_store
+
+    settings = Settings(_env_file=None, ecotwin_local_data_dir=tmp_path)
+    monkeypatch.setattr(
+        cloud,
+        "S3ObjectStore",
+        lambda *args: (_ for _ in ()).throw(AssertionError("AWS constructed")),
+    )
+    assert isinstance(object_store(settings), LocalObjectStore)
+    monkeypatch.setattr(cloud, "S3ObjectStore", lambda *args: object())
+    assert (
+        object_store(
+            settings.model_copy(update={"ecotwin_storage_mode": "s3", "ecotwin_s3_bucket": "test"})
+        )
+        is not None
+    )
+    assert isinstance(
+        object_store(
+            settings.model_copy(
+                update={
+                    "ecotwin_storage_mode": "auto",
+                    "ecotwin_s3_bucket": "test",
+                    "ecotwin_allow_local_fallback": True,
+                }
+            ),
+            {},
+        ),
+        CheckedFallbackObjectStore,
+    )
+
+
+def test_reclassification_rejections_and_empty_edits():
+    from ecotwin.models.landcover import apply_edits
+
+    geo = box(79, 21, 79.001, 21.001)
+    srid = analysis_srid(geo)
+    pieces = [CoverPiece(project(geo, srid), 10)]
+    assert apply_edits(pieces, [], srid) == (pieces, [])
+    for source, destination, fraction in [(9, 50, 1), (10, 10, 1), (10, 50, 0)]:
+        with pytest.raises(TwinError):
+            reclassify(
+                pieces,
+                {
+                    "polygon_geojson": mapping(geo),
+                    "from_class_code": source,
+                    "to_class_code": destination,
+                    "fraction": fraction,
+                },
+                srid,
+            )
+
+
+def test_partial_target_preserves_outside_class_area():
+    whole = box(79, 21, 79.002, 21.002)
+    target = box(79, 21, 79.001, 21.002)
+    srid = analysis_srid(whole)
+    pieces = [CoverPiece(project(whole, srid), 10)]
+    changed, realized = reclassify(
+        pieces,
+        {
+            "polygon_geojson": mapping(target),
+            "from_class_code": 10,
+            "to_class_code": 50,
+            "fraction": 1,
+        },
+        srid,
+    )
+    areas = class_areas(changed)
+    assert areas[10] > 0 and areas[50] == pytest.approx(realized)
+    assert sum(areas.values()) == pytest.approx(pieces[0].geom.area)
+    assert class_areas(pieces)[10] > areas[10]
