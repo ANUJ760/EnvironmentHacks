@@ -1,8 +1,9 @@
 from alembic import context
 from sqlalchemy import create_engine
+
 from ecotwin.config import get_settings
-from ecotwin.db.base import Base
 from ecotwin.db import models  # noqa: F401
+from ecotwin.db.base import Base
 
 url = get_settings().database_url.get_secret_value()
 if context.is_offline_mode():

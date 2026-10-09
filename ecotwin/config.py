@@ -1,14 +1,19 @@
 """Validated configuration. No network or secret discovery on import."""
+
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
+
 from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", case_sensitive=False)
     app_env: Literal["development", "test", "production"] = "development"
-    database_url: SecretStr = SecretStr("postgresql+psycopg://ecotwin:ecotwin_local_only@localhost:5432/ecotwin")
+    database_url: SecretStr = SecretStr(
+        "postgresql+psycopg://ecotwin:ecotwin_local_only@localhost:5432/ecotwin"
+    )
     db_pool_size: int = 5
     db_max_overflow: int = 10
     cors_allowed_origins: str = "http://localhost:3000"
@@ -46,13 +51,16 @@ class Settings(BaseSettings):
     runoff_model_version: str = "runoff-coeff-v1"
     solar_model_version: str = "solar-screen-v1"
     enable_uncalibrated_heat_prediction: bool = False
+
     @model_validator(mode="after")
     def validate_runtime(self) -> "Settings":
         if not self.database_url.get_secret_value().startswith("postgresql+psycopg://"):
             raise ValueError("PostgreSQL/psycopg is required; no mutable database fallback")
         if self.auth_mode == "dev" and len(self.dev_jwt_secret.get_secret_value()) < 32:
             raise ValueError("Generate DEV_JWT_SECRET with openssl rand -hex 32")
-        if self.auth_mode == "cognito" and not (self.cognito_client_id and self.cognito_user_pool_id):
+        if self.auth_mode == "cognito" and not (
+            self.cognito_client_id and self.cognito_user_pool_id
+        ):
             raise ValueError("Cognito pool and client are required")
         if self.ecotwin_storage_mode != "local" and not self.ecotwin_s3_bucket:
             raise ValueError("S3 bucket required")
@@ -62,23 +70,41 @@ class Settings(BaseSettings):
             raise ValueError("SQS queue URL required")
         if self.openaq_enabled and not self.openaq_api_key.get_secret_value():
             raise ValueError("OPENAQ_CREDENTIAL_REQUIRED")
-        if self.open_meteo_base_url != "https://api.open-meteo.com" or self.openaq_base_url != "https://api.openaq.org/v3":
+        if (
+            self.open_meteo_base_url != "https://api.open-meteo.com"
+            or self.openaq_base_url != "https://api.openaq.org/v3"
+        ):
             raise ValueError("Provider URL must match the approved HTTPS origin")
         if self.worker_lease_seconds <= self.simulation_timeout_seconds:
             raise ValueError("Lease must exceed simulation deadline")
         if not (0 < self.max_study_area_km2 <= 25 and 0 < self.max_scenario_edits <= 100):
             raise ValueError("Study area and edit limits exceed supported bounds")
         if self.enable_uncalibrated_heat_prediction or not self.verify_dataset_sha256:
-            raise ValueError("Uncalibrated causal heat predictions and unverified data are forbidden")
+            raise ValueError(
+                "Uncalibrated causal heat predictions and unverified data are forbidden"
+            )
         if self.app_env == "production":
-            if (self.auth_mode != "cognito" or self.ecotwin_storage_mode != "s3" or self.ecotwin_queue_backend != "sqs" or self.ecotwin_allow_local_fallback):
+            if (
+                self.auth_mode != "cognito"
+                or self.ecotwin_storage_mode != "s3"
+                or self.ecotwin_queue_backend != "sqs"
+                or self.ecotwin_allow_local_fallback
+            ):
                 raise ValueError("Production requires Cognito, S3, SQS and no fallback")
-            if any(not origin.startswith("https://") for origin in self.cors_allowed_origins.split(",")):
+            if any(
+                not origin.startswith("https://") for origin in self.cors_allowed_origins.split(",")
+            ):
                 raise ValueError("Production CORS origins must use HTTPS")
         return self
+
     @property
     def issuer(self) -> str:
-        return f"https://cognito-idp.{self.cognito_aws_region}.amazonaws.com/{self.cognito_user_pool_id}" if self.auth_mode == "cognito" else "ecotwin-local"
+        return (
+            f"https://cognito-idp.{self.cognito_aws_region}.amazonaws.com/{self.cognito_user_pool_id}"
+            if self.auth_mode == "cognito"
+            else "ecotwin-local"
+        )
+
 
 @lru_cache
 def get_settings() -> Settings:
