@@ -326,7 +326,7 @@ def air(
     file: Path | None = typer.Option(None),
     lookback_hours: int = typer.Option(48),
 ):
-    from ecotwin.ingestion.openaq import URL, fetch_air
+    from ecotwin.ingestion.openaq import URL, fetch_air, validate_cached_air
 
     with session_factory()() as session:
         area = city_by_slug(session, city)
@@ -340,6 +340,7 @@ def air(
             finally:
                 client.close()
             file = write_cache(document, "air.json")
+        document = validate_cached_air(document, boundary)
         revision, created = register_object(
             session,
             area,
@@ -419,9 +420,11 @@ def air(
 @ingest.command("waste")
 @audited_import
 def waste(city: str = typer.Option(...), file: Path = typer.Option(...)):
+    from ecotwin.ingestion.waste_import import WasteInput
     from ecotwin.models.waste_adapter import build_scenario
 
     document = json.loads(file.read_text())
+    WasteInput.model_validate(document)
     build_scenario(document)
     with session_factory()() as session:
         area = city_by_slug(session, city)

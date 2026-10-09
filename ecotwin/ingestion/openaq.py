@@ -83,3 +83,41 @@ def fetch_air(client, settings, bbox, lookback_hours=48):
         "coverage": "stations" if observations else "none",
         "captured_at": now.isoformat(),
     }
+
+
+def validate_cached_air(document, boundary):
+    """Cached imports obey the same value/unit/time rules as live provider responses."""
+    from shapely.geometry import Point
+
+    try:
+        if not isinstance(document["observations"], list) or document["coverage"] not in {
+            "none",
+            "stations",
+        }:
+            raise ValueError("Invalid cache shape")
+        relevant = []
+        for row in document["observations"]:
+            coordinates = row["location"]["coordinates"]
+            latitude, longitude = coordinates["latitude"], coordinates["longitude"]
+            measured = datetime.fromisoformat(row["measured_at"])
+            if (
+                not all(math.isfinite(value) for value in [latitude, longitude, row["value"]])
+                or not -90 <= latitude <= 90
+                or not -180 <= longitude <= 180
+                or not measured.tzinfo
+                or not row["unit"]
+                or not row["parameter"]
+            ):
+                raise ValueError("Invalid source measurement")
+            if boundary.covers(Point(longitude, latitude)):
+                relevant.append(row)
+        return {
+            **document,
+            "observations": relevant,
+            "coverage": "stations" if relevant else "none",
+        }
+    except (KeyError, ValueError, TypeError) as exc:
+        raise TwinError(
+            "UPSTREAM_PAYLOAD_INVALID",
+            "Cached air records require real species, units, finite values, WGS84 stations and UTC timestamps",
+        ) from exc
