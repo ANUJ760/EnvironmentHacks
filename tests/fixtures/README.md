@@ -1,0 +1,1 @@
+Test geometries, rasters and weather/air response shapes are constructed explicitly in tests. They are isolated fixtures and never registered as real city measurements. No bulk provider dataset or handoff artifact is bundled.
