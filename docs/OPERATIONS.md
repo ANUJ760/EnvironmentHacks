@@ -55,3 +55,5 @@ Hourly rainfall and irradiance describe the preceding hour ending at provider `v
 Model windows select those hourly intervals with `start_at < valid_at <= end_at`;
 weather observation queries select timestamped samples with `[start,end)` semantics.
 Reports preserve exact model requests, frozen edits and interval interpretation.
+
+Current release gate: the final container scan reports 44 HIGH/CRITICAL package findings in the upstream Debian base. See `docs/security-scan-summary.json`. No fixes were advertised by the scanner; production release remains blocked until a patched image passes the gate. Python dependency audit is clean.

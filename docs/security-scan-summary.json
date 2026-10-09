@@ -1,0 +1,25 @@
+{
+  "status": "FAIL",
+  "scanner": "Trivy 0.61.1",
+  "image": "ecotwin-backend:local",
+  "image_manifest_digest": "sha256:a729d27363ea217b38b3af5f17bdd819b6a2b270678335994cf5c77215c8c39b",
+  "severity_counts": {
+    "HIGH": 44
+  },
+  "unique_cves": [
+    "CVE-2025-69720",
+    "CVE-2026-16742",
+    "CVE-2026-54369",
+    "CVE-2026-76642",
+    "CVE-2026-78408",
+    "CVE-2026-78409",
+    "CVE-2026-78410",
+    "CVE-2026-9538"
+  ],
+  "findings_with_fix_version": 0,
+  "secret_findings": 0,
+  "release_blocker": "Upstream Debian OS package vulnerabilities; release gate retained without suppression. Rebuild and rescan after upstream fixes.",
+  "limitations": [
+    "Scanner warnings for third-party wheel SBOMs; audit is not proof of complete security."
+  ]
+}
