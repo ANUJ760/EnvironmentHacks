@@ -1,6 +1,9 @@
 """Strict analyst/municipal waste inputs without synthetic fallback."""
 
 import math
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
 
 from ecotwin.categories import WasteCategory
 from ecotwin.errors import TwinError
@@ -38,9 +41,6 @@ def validate_waste(document):
 
 
 # Exported schema supports operator preparation before any real dataset download.
-from typing import Literal
-
-from pydantic import BaseModel, ConfigDict, Field
 
 
 class ProcessingProfileInput(BaseModel):

@@ -17,7 +17,7 @@ dependencies = [
  "osmium>=4,<5"
 ]
 [project.scripts]
-ecotwin = "ecotwin.ingestion.cli:app"
+ecotwin = "ecotwin.ingestion.cli:main"
 [dependency-groups]
 dev = ["pytest>=8.3,<9", "pytest-cov>=6,<7", "hypothesis>=6.127,<7", "ruff>=0.11,<1", "mypy>=1.15,<2", "types-PyYAML", "pip-audit>=2.8,<3"]
 [tool.hatch.build.targets.wheel]

@@ -484,3 +484,27 @@ def landsat(
             successful_run(session, revision, int(values.count()))
         session.commit()
         output({"revision_id": revision.id, "valid_pixels": int(values.count()), "unit": "K"})
+
+
+def main():
+    try:
+        app()
+    except TwinError as exc:
+        typer.echo(
+            json.dumps(
+                {"code": exc.code, "detail": exc.detail, "missing_inputs": exc.missing_inputs}
+            ),
+            err=True,
+        )
+        raise SystemExit(2) from None
+    except (ValueError, KeyError, OSError):
+        typer.echo(
+            json.dumps(
+                {
+                    "code": "IMPORT_INPUT_INVALID",
+                    "detail": "Check source file shape, file permissions and mandatory provenance fields",
+                }
+            ),
+            err=True,
+        )
+        raise SystemExit(2) from None
