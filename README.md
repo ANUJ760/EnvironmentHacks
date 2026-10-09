@@ -1,3 +1,25 @@
+## Backend service (implemented)
+
+The preserved EcoTwin scientific library now has a FastAPI/PostGIS backend, immutable
+city snapshots, dataset import CLI, authenticated scenarios, recoverable worker jobs,
+local/S3 object storage, screening runoff/PV models and AWS Terraform infrastructure.
+
+```bash
+make setup
+make up
+```
+
+Real datasets are **not bundled**. Download slots and exact import steps:
+[Dataset onboarding](docs/DATASETS.md). Setup, models and release limitations:
+[Operations](docs/OPERATIONS.md). Cloud deployment: [Terraform runbook](infra/terraform/README.md).
+Actual validation evidence: [Implementation report](docs/implementation-report.json).
+The handoff guide pack is private and excluded from Git and Docker builds.
+
+The original library overview below remains for compatibility. Its future-grid/EV/heat
+examples are illustrative; the new backend supports only the explicitly documented models.
+
+---
+
 # EcoTwin 
 
 ### Physics-Informed AI Digital Twin for Urban Energy, Mobility & Resource Systems

@@ -65,7 +65,9 @@ resource "aws_ecs_task_definition" "tasks" {
         name = "OPENAQ_ENABLED", value = each.key == "ingest" && var.openaq_secret_arn != "" ? "true" : "false"
       },
       {
-        name = "ECOTWIN_CACHE_DIR", value = "/tmp/ecotwin-cache"
+        name = "ECOTWIN_CACHE_DIR", value = "/app/cache"
+      },
+      { name = "TMPDIR", value = "/app/cache"
     }],
     secrets = concat([{
       name = "DATABASE_URL", valueFrom = lookup(var.database_secret_arns, each.key, "")
@@ -73,7 +75,7 @@ resource "aws_ecs_task_definition" "tasks" {
       name = "OPENAQ_API_KEY", valueFrom = var.openaq_secret_arn
     }] : []),
     mountPoints = [{
-      sourceVolume = "temporary", containerPath = "/tmp", readOnly = false
+      sourceVolume = "temporary", containerPath = "/app/cache", readOnly = false
     }],
     logConfiguration = {
       logDriver = "awslogs", options = {

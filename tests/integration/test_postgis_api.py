@@ -325,3 +325,282 @@ def test_expired_lease_recovery_and_retry_cap(seeded):
         claim(session, "new-worker", settings)
         session.refresh(job)
         assert job.state == "FAILED" and job.error_code == "RETRY_LIMIT_EXCEEDED"
+
+
+def test_cached_ingestion_cli_and_public_api(tmp_path, monkeypatch):
+    if os.environ.get("RUN_POSTGIS_TESTS") != "1":
+        pytest.skip("PostGIS opt-in required")
+    import numpy as np
+    import rasterio
+    from rasterio.transform import from_origin
+    from typer.testing import CliRunner
+
+    from ecotwin.ingestion.cli import app as cli
+    from ecotwin.ingestion.open_meteo import FIELDS
+
+    monkeypatch.setenv("ECOTWIN_LOCAL_DATA_DIR", str(tmp_path / "store"))
+    monkeypatch.setenv("ECOTWIN_CACHE_DIR", str(tmp_path / "cache"))
+    get_settings.cache_clear()
+    session_factory.cache_clear()
+    runner = CliRunner()
+    slug = "cli-" + uuid4().hex
+
+    def invoke(args):
+        response = runner.invoke(cli, args)
+        assert response.exit_code == 0, (response.output, response.exception)
+        return response
+
+    create = invoke(
+        [
+            "city",
+            "create",
+            "--city-id",
+            slug,
+            "--name",
+            "Hand-built fixture",
+            "--bbox",
+            "79,21,79.002,21.002",
+        ]
+    )
+    city = json.loads(create.output)["id"]
+    invoke(
+        [
+            "city",
+            "create",
+            "--city-id",
+            slug,
+            "--name",
+            "Hand-built fixture",
+            "--bbox",
+            "79,21,79.002,21.002",
+        ]
+    )
+    footprint = mapping(box(79.0005, 21.0005, 79.0015, 21.0015))
+    osm = tmp_path / "osm.geojson"
+    osm.write_text(
+        json.dumps(
+            {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "id": "osm:way/12",
+                        "properties": {"building": "yes"},
+                        "geometry": footprint,
+                    }
+                ],
+            }
+        )
+    )
+    invoke(["ingest", "osm", "--city", slug, "--file", str(osm)])
+    invoke(["ingest", "osm", "--city", slug, "--file", str(osm)])
+    cover = tmp_path / "cover.tif"
+    with rasterio.open(
+        cover,
+        "w",
+        driver="GTiff",
+        height=2,
+        width=2,
+        count=1,
+        dtype="uint8",
+        crs="EPSG:4326",
+        transform=from_origin(79, 21.002, 0.001, 0.001),
+        nodata=0,
+    ) as destination:
+        destination.write(np.full((2, 2), 10, dtype="uint8"), 1)
+    invoke(["ingest", "worldcover", "--city", slug, "--file", str(cover)])
+    weather = tmp_path / "weather.json"
+    weather.write_text(
+        json.dumps(
+            {
+                "latitude": 21,
+                "longitude": 79,
+                "_ecotwin_issued_at": "2026-10-09T00:00:00+00:00",
+                "hourly_units": {k: v[1] for k, v in FIELDS.items()},
+                "hourly": {
+                    "time": ["2026-10-09T00:00", "2026-10-09T01:00"],
+                    **{key: [50, 50] for key in FIELDS},
+                },
+            }
+        )
+    )
+    invoke(["ingest", "weather", "--city", slug, "--file", str(weather)])
+    air = tmp_path / "air.json"
+    air.write_text(
+        json.dumps(
+            {
+                "coverage": "stations",
+                "observations": [
+                    {
+                        "location": {
+                            "id": 42,
+                            "name": "Test fixture station",
+                            "coordinates": {"latitude": 21.001, "longitude": 79.001},
+                        },
+                        "sensor_id": "13",
+                        "parameter": "pm25",
+                        "value": 12,
+                        "unit": "µg/m³",
+                        "measured_at": "2026-10-09T00:00:00+00:00",
+                        "source_url": "https://example.org/test-fixture",
+                    }
+                ],
+            }
+        )
+    )
+    invoke(["ingest", "air", "--city", slug, "--file", str(air)])
+    profile = {
+        "material_recovery_rate": 0.5,
+        "landfill_residue_rate": 0.3,
+        "process_loss_rate": 0.2,
+        "specific_energy_kwh_per_tonne": 100,
+        "energy_efficiency": 0.5,
+    }
+    document = {
+        "source_license": "CC0-test-only",
+        "attribution": "hand-built fixture",
+        "measurement_type": "ASSUMED",
+        "source_url": "https://example.org/test",
+        "origin_id": "origin",
+        "daily_waste_tonnes": 1,
+        "composition": {"organic": 1},
+        "facilities": [
+            {
+                "facility_id": "plant",
+                "facility_type": "test",
+                "lat": 21.001,
+                "lon": 79.001,
+                "effective_date": "2026-10-09T00:00:00+00:00",
+                "source_url": "https://example.org/test",
+                "measurement_type": "ASSUMED",
+                "capacity_tpd": 2,
+                "accepted_categories": ["organic"],
+                "profiles": {"organic": profile},
+            }
+        ],
+        "routing": {"organic": "plant"},
+    }
+    waste = tmp_path / "waste.json"
+    waste.write_text(json.dumps(document))
+    invoke(["ingest", "waste", "--city", slug, "--file", str(waste)])
+    invoke(["datasets", "verify", "--city", slug])
+    snap = invoke(["city", "snapshot", "--city", slug])
+    snapshot_id = json.loads(snap.output)["snapshot_id"]
+    invoke(["models", "list", "--city", slug])
+    invoke(["db", "check"])
+    invoke(["auth", "issue-dev-token", "--subject", "cli-user"])
+    with TestClient(app) as client:
+        assert client.get("/v1/cities?limit=1").status_code == 200
+        assert client.get("/v1/cities/" + city).json()["active_snapshot_id"] == snapshot_id
+        features = client.get(f"/v1/cities/{city}/features?bbox=79,21,79.002,21.002").json()
+        assert features["features"][0]["properties"]["category"] == "building"
+        assert (
+            client.get(f"/v1/cities/{city}/features?bbox=79,21,79.002,21.002&category=road").json()[
+                "features"
+            ]
+            == []
+        )
+        assert client.get(f"/v1/cities/{city}/datasets").status_code == 200
+        assert (
+            client.get(f"/v1/cities/{city}/observations/weather").json()["series"][0]["rain_mm"]
+            == 50
+        )
+        assert (
+            client.get(
+                f"/v1/cities/{city}/observations/weather?start=2026-10-09T00:00:00Z&end=2026-10-09T02:00:00Z"
+            ).status_code
+            == 200
+        )
+        assert (
+            client.get(f"/v1/cities/{city}/observations/air").json()["readings"][0]["value"] == 12
+        )
+        assert client.get("/v1/models?city_id=" + city).status_code == 200
+        assert client.get("/metrics").status_code == 200
+        headers = auth(get_settings(), "cli-sim-" + uuid4().hex)
+        scenario = client.post(
+            "/v1/scenarios",
+            headers=headers,
+            json={"city_id": city, "snapshot_id": snapshot_id, "name": "PV and waste"},
+        ).json()
+        solar = {
+            "edit_type": "SOLAR_PV_INSTALL",
+            "footprint_geojson": footprint,
+            "installed_kwp": 10,
+            "panel_tilt_deg": 0,
+            "panel_azimuth_deg": 0,
+            "performance_ratio": 0.75,
+        }
+        response = client.put(
+            f"/v1/scenarios/{scenario['id']}/edits",
+            headers={**headers, "If-Match": '"1"'},
+            json={"edits": [solar]},
+        )
+        assert response.status_code == 200, response.text
+        accepted = client.post(
+            f"/v1/scenarios/{scenario['id']}/simulate",
+            headers={**headers, "Idempotency-Key": uuid4().hex},
+            json={"requested_models": ["solar_pv", "waste_balance"]},
+        ).json()
+        with session_factory()() as session:
+            job = session.get(SimulationJob, accepted["job_id"])
+            report = execute(session, job.frozen_input)
+            energy = next(m for m in report["metrics"] if m["name"] == "pv_indicative_energy")
+            assert energy["scenario_value"] == 0.75
+            assert report["evidence"]["unavailable_metrics"][0]["name"] == "emissions_delta"
+    get_settings.cache_clear()
+    session_factory.cache_clear()
+
+
+def test_bad_geometry_api_bodies_and_outside_edits(seeded):
+    settings, city_id, snapshot_id, geom = seeded
+    with TestClient(app) as client:
+        headers = auth(settings, "validation-" + uuid4().hex)
+        scenario = client.post(
+            "/v1/scenarios",
+            headers=headers,
+            json={"city_id": str(city_id), "snapshot_id": str(snapshot_id), "name": "validation"},
+        ).json()
+        sid = scenario["id"]
+        outside = {
+            "edit_type": "LAND_COVER_RECLASSIFY",
+            "polygon_geojson": mapping(box(80, 22, 80.001, 22.001)),
+            "from_class_code": 10,
+            "to_class_code": 50,
+            "fraction": 1,
+        }
+        response = client.put(
+            f"/v1/scenarios/{sid}/edits",
+            headers={**headers, "If-Match": '"1"'},
+            json={"edits": [outside]},
+        )
+        assert response.json()["code"] == "OUTSIDE_STUDY_BOUNDARY"
+        assert client.post("/v1/scenarios", headers=headers, json={"unknown": 1}).status_code == 422
+        assert (
+            client.post(
+                "/v1/scenarios",
+                headers={**headers, "Content-Type": "text/plain"},
+                content="malicious",
+            ).status_code
+            == 415
+        )
+        assert (
+            client.post(
+                "/v1/scenarios", headers=headers, json={"name": "x" * 1_000_001}
+            ).status_code
+            == 413
+        )
+        assert client.get("/v1/cities/" + str(uuid4())).status_code == 404
+        assert client.get("/does-not-exist").status_code == 404
+        assert client.get("/v1/jobs/" + str(uuid4()), headers=headers).status_code == 404
+        assert client.get(f"/v1/scenarios/{sid}/reports", headers=headers).json() == []
+        assert (
+            client.get(f"/v1/cities/{city_id}/observations/air").json()["evidence_class"]
+            == "UNAVAILABLE"
+        )
+        assert client.get(f"/v1/cities/{city_id}/features?bbox=nan,0,1,1").status_code == 422
+        assert (
+            client.get(
+                f"/v1/cities/{city_id}/observations/weather?start=2026-10-09T00:00:00"
+            ).status_code
+            == 422
+        )

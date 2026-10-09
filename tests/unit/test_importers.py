@@ -106,3 +106,42 @@ def test_waste_adapter_mass_closure():
     document["synthetic"] = True
     with pytest.raises(TwinError):
         build_scenario(document)
+
+
+def test_optional_landsat_qa_mask(tmp_path):
+    import numpy as np
+    import rasterio
+    from rasterio.transform import from_origin
+
+    from ecotwin.ingestion.landsat import surface_temperature
+
+    profile = {
+        "driver": "GTiff",
+        "height": 2,
+        "width": 2,
+        "count": 1,
+        "dtype": "uint16",
+        "crs": "EPSG:4326",
+        "transform": from_origin(79, 21.002, 0.001, 0.001),
+    }
+    for name, values in [
+        ("ST.tif", np.full((2, 2), 45000, dtype="uint16")),
+        ("QA.tif", np.array([[0, 8], [0, 0]], dtype="uint16")),
+    ]:
+        with rasterio.open(tmp_path / name, "w", **profile) as destination:
+            destination.write(values, 1)
+    metadata = {
+        "scene_id": "TEST_ONLY",
+        "acquired_at": "2026-10-09T00:00:00+00:00",
+        "st_band": "ST.tif",
+        "qa_pixel_band": "QA.tif",
+        "scale_factor": 0.00341802,
+        "add_offset": 149,
+        "source_url": "https://example.org/test",
+        "source_license": "CC0-test",
+        "attribution": "Hand-built test bands",
+    }
+    values, _, _ = surface_temperature(tmp_path, metadata, box(79, 21, 79.002, 21.002))
+    assert values.count() == 3 and values[0, 0] == pytest.approx(45000 * 0.00341802 + 149)
+    with pytest.raises(TwinError):
+        surface_temperature(tmp_path, {}, box(79, 21, 79.002, 21.002))
