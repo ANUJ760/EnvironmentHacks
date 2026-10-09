@@ -145,3 +145,65 @@ def test_optional_landsat_qa_mask(tmp_path):
     assert values.count() == 3 and values[0, 0] == pytest.approx(45000 * 0.00341802 + 149)
     with pytest.raises(TwinError):
         surface_temperature(tmp_path, {}, box(79, 21, 79.002, 21.002))
+
+
+def test_osm_xml_bulk_geometry_keeps_underlying_way_identity(tmp_path):
+    from ecotwin.ingestion.osm import parse_geojson, pbf_geojson
+
+    path = tmp_path / "tiny.osm"
+    path.write_text("""<?xml version="1.0"?><osm version="0.6" generator="hand-built-test">
+    <node id="1" lat="21" lon="79"/><node id="2" lat="21" lon="79.001"/>
+    <node id="3" lat="21.001" lon="79.001"/><node id="4" lat="21.001" lon="79"/>
+    <node id="5" lat="21.0005" lon="79.0005"><tag k="natural" v="tree"/></node>
+    <way id="12"><nd ref="1"/><nd ref="2"/><nd ref="3"/><nd ref="4"/><nd ref="1"/><tag k="building" v="yes"/></way>
+    <way id="13"><nd ref="1"/><nd ref="2"/><tag k="highway" v="residential"/></way>
+    </osm>""")
+    document = pbf_geojson(path)
+    rows, _ = parse_geojson(document, box(78.999, 20.999, 79.002, 21.002))
+    assert {row["provider_feature_id"] for row in rows} == {
+        "osm:node/5",
+        "osm:way/12",
+        "osm:way/13",
+    }
+    assert any("Polygon" in row["geom"].geom_type for row in rows)
+    assert any(row["geom"].geom_type == "LineString" for row in rows)
+
+
+def test_osm_rejects_bad_identity_topology_and_clips_outside():
+    from ecotwin.ingestion.osm import parse_geojson
+
+    boundary = box(79, 21, 79.001, 21.001)
+    bad = {"type": "Feature", "id": "untagged-id", "properties": {}, "geometry": mapping(boundary)}
+    with pytest.raises(TwinError):
+        parse_geojson({"type": "FeatureCollection", "features": [bad]}, boundary)
+    invalid = {
+        "type": "Feature",
+        "id": "osm:way/1",
+        "properties": {"building": "yes"},
+        "geometry": {
+            "type": "Polygon",
+            "coordinates": [[[79, 21], [79.001, 21.001], [79, 21.001], [79.001, 21], [79, 21]]],
+        },
+    }
+    outside = {
+        "type": "Feature",
+        "id": "osm:way/2",
+        "properties": {"building": "yes"},
+        "geometry": mapping(box(80, 22, 80.001, 22.001)),
+    }
+    rows, rejected = parse_geojson(
+        {"type": "FeatureCollection", "features": [invalid, outside]}, boundary
+    )
+    assert rows == [] and rejected == 1
+
+
+def test_worldcover_missing_coverage_nodata_and_size_limits(raster):
+    with pytest.raises(TwinError):
+        raster_cells(raster, box(80, 22, 80.002, 22.002), 32644)
+    with pytest.raises(TwinError):
+        raster_cells(raster, box(79, 21, 79.002, 21.002), 32644, limit=1)
+    with rasterio.open(raster, "r+") as dataset:
+        dataset.write(np.zeros((2, 2), dtype="uint8"), 1)
+    with pytest.raises(TwinError) as error:
+        raster_cells(raster, box(79, 21, 79.002, 21.002), 32644)
+    assert error.value.code == "INSUFFICIENT_INPUT_DATA"

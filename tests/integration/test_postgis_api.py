@@ -788,3 +788,159 @@ def test_worker_enforces_deadline_and_shutdown_retry(seeded, monkeypatch):
     with session_factory()() as session:
         status = session.get(SimulationJob, retry.id)
         assert status.state == "RETRY_WAIT" and status.locked_until is None
+
+
+def test_actionable_cli_prerequisites_and_cursor_contracts(seeded, tmp_path, monkeypatch):
+    from typer.testing import CliRunner
+
+    from ecotwin.ingestion.cli import app as cli
+
+    settings, city_id, snapshot_id, geom = seeded
+    with session_factory()() as session:
+        slug = session.get(City, city_id).slug
+    runner = CliRunner()
+    cases = [
+        [
+            "city",
+            "create",
+            "--city-id",
+            "INVALID!",
+            "--name",
+            "bad",
+            "--bbox",
+            "79,21,79.001,21.001",
+        ],
+        ["city", "create", "--city-id", slug, "--name", "bad", "--bbox", "80,22,80.001,22.001"],
+        ["ingest", "osm", "--city", slug],
+        ["ingest", "worldcover", "--city", slug],
+        ["ingest", "worldcover", "--city", slug, "--year", "2020"],
+        ["ingest", "air", "--city", slug],
+        ["jobs", "requeue", "--job-id", str(uuid4()), "--reason", "unknown job"],
+        ["jobs", "requeue", "--job-id", str(uuid4()), "--reason", ""],
+    ]
+    for args in cases:
+        assert runner.invoke(cli, args).exit_code != 0
+    weather = tmp_path / "weather.json"
+    weather.write_text("{}")
+    assert (
+        runner.invoke(cli, ["ingest", "weather", "--city", slug, "--file", str(weather)]).exit_code
+        != 0
+    )
+    monkeypatch.setenv("OPEN_METEO_ENABLED", "false")
+    get_settings.cache_clear()
+    assert runner.invoke(cli, ["ingest", "weather", "--city", slug]).exit_code != 0
+    with TestClient(app) as client:
+        assert client.get("/v1/cities?cursor=" + str(city_id)).status_code == 200
+        assert (
+            client.get(
+                f"/v1/cities/{city_id}/features?bbox=79,21,79.001,21.001&cursor=" + str(uuid4())
+            ).status_code
+            == 200
+        )
+        assert (
+            client.get(f"/v1/cities/{city_id}/datasets?cursor=" + str(uuid4())).status_code == 200
+        )
+        headers = auth(get_settings(), "cursor-" + uuid4().hex)
+        assert (
+            client.post(
+                "/v1/scenarios",
+                headers=headers,
+                json={"city_id": str(city_id), "snapshot_id": str(uuid4()), "name": "missing"},
+            ).status_code
+            == 422
+        )
+        scenario = client.post(
+            "/v1/scenarios",
+            headers=headers,
+            json={"city_id": str(city_id), "snapshot_id": str(snapshot_id), "name": "reports"},
+        ).json()
+        assert (
+            client.get(
+                f"/v1/scenarios/{scenario['id']}/reports?cursor={uuid4()}", headers=headers
+            ).status_code
+            == 200
+        )
+        override = {
+            "edit_type": "WASTE_ROUTING_OVERRIDE",
+            "stream_category": "organic",
+            "origin_id": "origin",
+            "facility_id": "plant",
+            "allocation_fraction": 1,
+        }
+        response = client.put(
+            f"/v1/scenarios/{scenario['id']}/edits",
+            headers={**headers, "If-Match": '"1"'},
+            json={"edits": [override]},
+        )
+        assert response.json()["code"] == "INSUFFICIENT_INPUT_DATA"
+    get_settings.cache_clear()
+
+
+def test_pinned_weather_periods_and_model_input_failures(seeded):
+    settings, city_id, snapshot_id, geom = seeded
+    from ecotwin.errors import TwinError
+
+    with session_factory()() as session:
+        frozen = {
+            "snapshot_id": str(snapshot_id),
+            "scenario_digest": "e" * 64,
+            "scenario_revision": 1,
+            "edits": [],
+            "request": {
+                "requested_models": ["runoff_screen"],
+                "start_at": "2026-10-09T00:00:00+00:00",
+                "end_at": "2026-10-09T02:00:00+00:00",
+            },
+        }
+        report = execute(session, frozen)
+        assert report["metrics"][0]["baseline_value"] > 0
+        for payload in [
+            {"requested_models": ["runoff_screen"]},
+            {"requested_models": ["solar_pv"]},
+            {"requested_models": ["waste_balance"]},
+            {
+                "requested_models": ["runoff_screen"],
+                "start_at": "2026-10-08T00:00:00+00:00",
+                "end_at": "2026-10-08T02:00:00+00:00",
+            },
+        ]:
+            with pytest.raises(TwinError):
+                execute(session, {**frozen, "request": payload})
+        with pytest.raises(TwinError):
+            execute(session, {**frozen, "snapshot_id": str(uuid4())})
+        altered = frozen.copy()
+        altered["edits"] = [
+            {
+                "edit_type": "LAND_COVER_RECLASSIFY",
+                "polygon_geojson": geom,
+                "from_class_code": 10,
+                "to_class_code": 80,
+                "fraction": 1,
+            }
+        ]
+        altered["request"] = {"requested_models": ["runoff_screen"], "event_rainfall_mm": 50}
+        with pytest.raises(TwinError) as error:
+            execute(session, altered)
+        assert error.value.code == "INCOMPLETE_COVERAGE"
+
+
+def test_spatial_repository_failure_semantics(seeded):
+    from types import SimpleNamespace
+
+    from ecotwin.errors import TwinError
+    from ecotwin.spatial.spatial_queries import city_by_slug, load_cover, snapshot_inputs
+
+    settings, city_id, snapshot_id, _ = seeded
+    with session_factory()() as session:
+        city = session.get(City, city_id)
+        with pytest.raises(TwinError):
+            city_by_slug(session, "missing-" + uuid4().hex)
+        with pytest.raises(TwinError):
+            snapshot_inputs(session, SimpleNamespace(dataset_revision_ids=[uuid4()]))
+        osm = session.scalar(
+            select(DatasetRevision).where(
+                DatasetRevision.city_id == city_id, DatasetRevision.kind == "osm"
+            )
+        )
+        with pytest.raises(TwinError):
+            load_cover(session, SimpleNamespace(dataset_revision_ids=[osm.id]), city)

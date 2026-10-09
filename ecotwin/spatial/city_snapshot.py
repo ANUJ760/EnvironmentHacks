@@ -1,9 +1,9 @@
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 
 from ecotwin.config import get_settings
-from ecotwin.db.models import CitySnapshot, DatasetRevision
+from ecotwin.db.models import CitySnapshot, DatasetRevision, LandcoverCell, WeatherHour
 from ecotwin.errors import TwinError
 from ecotwin.simulation.command import canonical_digest
 from ecotwin.storage.factory import object_store
@@ -38,6 +38,22 @@ def publish_snapshot(session, city):
             "Import OSM, WorldCover and weather before publishing",
             missing_inputs=sorted({"osm", "worldcover", "weather"} - latest.keys()),
         )
+    for kind, table in [("worldcover", LandcoverCell), ("weather", WeatherHour)]:
+        query = select(func.count()).select_from(table).where(table.revision_id == latest[kind].id)
+        if kind == "weather":
+            query = query.where(
+                or_(
+                    WeatherHour.temperature_c.is_not(None),
+                    WeatherHour.rain_mm.is_not(None),
+                    WeatherHour.ghi_w_m2.is_not(None),
+                )
+            )
+        if not session.scalar(query):
+            raise TwinError(
+                "INSUFFICIENT_INPUT_DATA",
+                "A published baseline requires usable imported " + kind + " rows",
+                missing_inputs=[kind],
+            )
     selected = sorted(latest.values(), key=lambda r: r.kind)
     store = object_store(get_settings(), {r.object_key: r.sha256 for r in selected})
     for revision in selected:
