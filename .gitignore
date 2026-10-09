@@ -1,0 +1,26 @@
+# Operator handoff materials must never be published.
+ec otwin_agent_handoff/
+ecotwin_agent_handoff/
+EcoTwin_Backend_Agent_Handoff_Pack.zip
+*Handoff*.zip
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.env.*
+!.env.example
+!frontend/.env.example
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+.coverage*
+htmlcov/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.terraform/
+*.tfstate*
+*.tfplan
+terraform.tfvars
+node_modules/
