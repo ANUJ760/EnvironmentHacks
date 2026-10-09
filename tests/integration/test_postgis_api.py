@@ -673,3 +673,68 @@ def test_job_quota_and_live_cancellation(seeded, monkeypatch):
         process_job(job, "cancel-worker", get_settings())
         assert client.get("/v1/jobs/" + str(job.id), headers=headers).json()["state"] == "CANCELED"
     get_settings.cache_clear()
+
+
+def test_failed_import_audit_and_operator_requeue(seeded, tmp_path):
+    settings, city_id, snapshot_id, geom = seeded
+    from typer.testing import CliRunner
+
+    from ecotwin.db.models import AuditEvent, ImportRun, Scenario, UserAccount
+    from ecotwin.ingestion.cli import app as cli
+    from ecotwin.jobs.db_queue import submit
+
+    runner = CliRunner()
+    with session_factory()() as session:
+        city = session.get(City, city_id)
+        slug = city.slug
+    malformed = tmp_path / "invalid.json"
+    malformed.write_text("{}")
+    result = runner.invoke(cli, ["ingest", "osm", "--city", slug, "--file", str(malformed)])
+    assert result.exit_code != 0
+    with session_factory()() as session:
+        audit = session.scalar(
+            select(ImportRun)
+            .where(ImportRun.status == "FAILED")
+            .order_by(ImportRun.started_at.desc())
+            .limit(1)
+        )
+        assert audit.error_code == "UPSTREAM_PAYLOAD_INVALID"
+        user = UserAccount(identity_issuer="operator-test", identity_subject=uuid4().hex)
+        session.add(user)
+        session.flush()
+        scenario = Scenario(
+            snapshot_id=snapshot_id,
+            owner_user_id=user.id,
+            name="requeue",
+            updated_at=datetime.now(UTC),
+            scenario_sha256="f" * 64,
+        )
+        session.add(scenario)
+        session.flush()
+        job = submit(
+            session, scenario, user.id, uuid4().hex, {"requested_models": ["landcover_summary"]}, []
+        )
+        job.state = "FAILED"
+        job.attempt = 3
+        job.error_code = "STORAGE_UNAVAILABLE"
+        session.commit()
+        identifier = str(job.id)
+    response = runner.invoke(
+        cli,
+        [
+            "jobs",
+            "requeue",
+            "--job-id",
+            identifier,
+            "--reason",
+            "Verified temporary provider outage resolved",
+        ],
+    )
+    assert response.exit_code == 0, (response.output, response.exception)
+    with session_factory()() as session:
+        assert session.get(SimulationJob, identifier).state == "QUEUED"
+        assert session.scalar(
+            select(AuditEvent).where(
+                AuditEvent.resource_id == identifier, AuditEvent.action == "operator_job_requeued"
+            )
+        )

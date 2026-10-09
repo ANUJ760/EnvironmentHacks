@@ -1,3 +1,4 @@
+from contextvars import ContextVar
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -9,6 +10,8 @@ from ecotwin.db.models import DatasetRevision, ImportRun
 from ecotwin.storage.base import file_digest
 from ecotwin.storage.factory import object_store
 from ecotwin.storage.manifest import DatasetManifest
+
+current_import_run = ContextVar("current_import_run", default=None)
 
 SOURCES = {
     "osm": (
@@ -110,15 +113,15 @@ def register_object(
 
 def successful_run(session, revision, count, rejected=0):
     now = datetime.now(UTC)
-    session.add(
-        ImportRun(
-            dataset_revision_id=revision.id,
-            status="SUCCEEDED",
-            started_at=now,
-            finished_at=now,
-            rows_read=count + rejected,
-            rows_imported=count,
-            rows_rejected=rejected,
-            details_json={"complete": rejected == 0},
-        )
-    )
+    identifier = current_import_run.get()
+    run = session.get(ImportRun, identifier) if identifier else None
+    if run is None:
+        run = ImportRun(started_at=now, details_json={})
+        session.add(run)
+    run.dataset_revision_id = revision.id
+    run.status = "SUCCEEDED"
+    run.finished_at = now
+    run.rows_read = count + rejected
+    run.rows_imported = count
+    run.rows_rejected = rejected
+    run.details_json = {"complete": rejected == 0}

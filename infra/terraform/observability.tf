@@ -111,3 +111,38 @@ resource "aws_scheduler_schedule" "weather" {
     )
   }
 }
+
+resource "aws_cloudwatch_log_metric_filter" "job_failures" {
+  name           = "${local.name}-job-failures"
+  log_group_name = aws_cloudwatch_log_group.tasks["worker"].name
+  pattern        = "{ $.event = \"simulation_job_completed\" && $.state = \"FAILED\" }"
+  metric_transformation {
+    name          = "SimulationFailures"
+    namespace     = "EcoTwin"
+    value         = "1"
+    default_value = 0
+  }
+}
+resource "aws_cloudwatch_log_metric_filter" "ingest_failures" {
+  name           = "${local.name}-ingest-failures"
+  log_group_name = aws_cloudwatch_log_group.tasks["ingest"].name
+  pattern        = "{ $.event = \"ingest_failed\" }"
+  metric_transformation {
+    name          = "IngestionFailures"
+    namespace     = "EcoTwin"
+    value         = "1"
+    default_value = 0
+  }
+}
+resource "aws_cloudwatch_metric_alarm" "application_failures" {
+  for_each            = toset(["SimulationFailures", "IngestionFailures"])
+  alarm_name          = "${local.name}-${each.key}"
+  namespace           = "EcoTwin"
+  metric_name         = each.key
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 0
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+}

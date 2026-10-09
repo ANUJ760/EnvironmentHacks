@@ -50,6 +50,60 @@ for name, group in [
     app.add_typer(group, name=name)
 
 
+def audited_import(function):
+    from functools import wraps
+
+    import structlog
+
+    from ecotwin.db.models import ImportRun
+    from ecotwin.ingestion.catalog import current_import_run
+
+    @wraps(function)
+    def audited(*args, **kwargs):
+        start = datetime.now(UTC)
+        with session_factory()() as session:
+            run = ImportRun(
+                status="RUNNING", started_at=start, details_json={"command": function.__name__}
+            )
+            session.add(run)
+            session.commit()
+            identifier = run.id
+        token = current_import_run.set(identifier)
+        try:
+            result = function(*args, **kwargs)
+            with session_factory()() as session:
+                run = session.get(ImportRun, identifier)
+                if run.status == "RUNNING":
+                    run.status = "SUCCEEDED"
+                    run.finished_at = datetime.now(UTC)
+                    run.details_json = {"command": function.__name__, "duplicate_revision": True}
+                    session.commit()
+            return result
+        except Exception as exc:
+            code = exc.code if isinstance(exc, TwinError) else "IMPORT_FAILED"
+            with session_factory()() as session:
+                run = session.get(ImportRun, identifier)
+                run.status = "FAILED"
+                run.finished_at = datetime.now(UTC)
+                run.error_code = code
+                run.details_json = {
+                    "command": function.__name__,
+                    "exception_type": type(exc).__name__,
+                }
+                session.commit()
+            structlog.get_logger().error(
+                "ingest_failed",
+                source=function.__name__,
+                error_code=code,
+                import_run_id=str(identifier),
+            )
+            raise
+        finally:
+            current_import_run.reset(token)
+
+    return audited
+
+
 def write_cache(document, name):
     import tempfile
 
@@ -117,6 +171,7 @@ def snapshot(city: str = typer.Option(...)):
 
 
 @ingest.command("osm")
+@audited_import
 def osm(
     city: str = typer.Option(...),
     file: Path | None = typer.Option(None),
@@ -171,6 +226,7 @@ def osm(
 
 
 @ingest.command("worldcover")
+@audited_import
 def worldcover(
     city: str = typer.Option(...),
     file: Path | None = typer.Option(None),
@@ -206,6 +262,7 @@ def worldcover(
 
 
 @ingest.command("weather")
+@audited_import
 def weather(
     city: str = typer.Option(...),
     file: Path | None = typer.Option(None),
@@ -263,6 +320,7 @@ def weather(
 
 
 @ingest.command("air")
+@audited_import
 def air(
     city: str = typer.Option(...),
     file: Path | None = typer.Option(None),
@@ -359,6 +417,7 @@ def air(
 
 
 @ingest.command("waste")
+@audited_import
 def waste(city: str = typer.Option(...), file: Path = typer.Option(...)):
     from ecotwin.models.waste_adapter import build_scenario
 
@@ -438,6 +497,7 @@ def work(once: bool = typer.Option(False)):
 
 
 @ingest.command("landsat")
+@audited_import
 def landsat(
     city: str = typer.Option(...),
     scene_dir: Path = typer.Option(...),
@@ -503,6 +563,49 @@ def landsat(
             successful_run(session, revision, int(values.count()))
         session.commit()
         output({"revision_id": revision.id, "valid_pixels": int(values.count()), "unit": "K"})
+
+
+@jobs.command("requeue")
+def requeue(job_id: str = typer.Option(...), reason: str = typer.Option(...)):
+    from uuid import UUID
+
+    from ecotwin.db.models import AuditEvent, SimulationJob
+
+    if not reason.strip() or len(reason) > 500:
+        raise TwinError("INVALID_REQUEST", "A bounded operator reason is required")
+    with session_factory()() as session:
+        job = session.scalar(
+            select(SimulationJob).where(SimulationJob.id == UUID(job_id)).with_for_update()
+        )
+        if not job or job.state != "FAILED":
+            raise TwinError(
+                "JOB_STATE_CONFLICT", "Only a failed job can be explicitly requeued", 409
+            )
+        old_attempt = job.attempt
+        old_error = job.error_code
+        job.state = "QUEUED"
+        job.attempt = 0
+        job.not_before = datetime.now(UTC)
+        job.finished_at = None
+        job.worker_id = None
+        job.locked_until = None
+        job.error_code = None
+        job.error_message = None
+        job.progress_pct = 0
+        session.add(
+            AuditEvent(
+                actor_id=None,
+                action="operator_job_requeued",
+                resource_id=job.id,
+                details={
+                    "reason": reason,
+                    "previous_attempts": old_attempt,
+                    "previous_error": old_error,
+                },
+            )
+        )
+        session.commit()
+        output({"job_id": job.id, "state": job.state})
 
 
 def main():
