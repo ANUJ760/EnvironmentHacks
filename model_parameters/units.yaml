@@ -1,0 +1,8 @@
+area: m2
+rainfall_depth: mm
+runoff_volume: m3
+irradiance: W/m2
+energy: kWh
+power_nameplate: kWp
+mass: kg
+wind: m/s

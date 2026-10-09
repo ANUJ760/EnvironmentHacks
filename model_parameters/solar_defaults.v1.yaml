@@ -1,0 +1,5 @@
+model_id: solar_pv
+model_version: solar-screen-v1
+performance_ratio: 0.75
+evidence_class: ASSUMED_INPUT
+limitations: [no_shading_model, no_structural_assessment, horizontal_unshaded_only, no_grid_emission_factor]
