@@ -2,7 +2,7 @@ import hashlib
 import io
 
 import pytest
-from botocore.exceptions import ClientError, EndpointConnectionError
+from botocore.exceptions import ClientError, EndpointConnectionError, NoCredentialsError
 
 from ecotwin.errors import TwinError
 from ecotwin.storage.s3 import S3ObjectStore
@@ -14,6 +14,8 @@ class S3:
         self.error = None
 
     def fail(self):
+        if self.error == "credentials":
+            raise NoCredentialsError()
         if self.error == "network":
             raise EndpointConnectionError(endpoint_url="https://s3.amazonaws.com")
         if self.error:
@@ -64,6 +66,7 @@ def test_s3_streaming_cache_and_conditional_write(tmp_path):
         ("ExpiredToken", "STORAGE_PERMISSION_DENIED"),
         ("NoSuchKey", "DATASET_NOT_FOUND"),
         ("network", "STORAGE_UNAVAILABLE"),
+        ("credentials", "STORAGE_PERMISSION_DENIED"),
         ("InternalError", "STORAGE_UNAVAILABLE"),
     ],
 )

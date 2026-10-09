@@ -5,7 +5,13 @@ from pathlib import Path
 
 import boto3
 from botocore.config import Config
-from botocore.exceptions import BotoCoreError, ClientError
+from botocore.exceptions import (
+    BotoCoreError,
+    ClientError,
+    CredentialRetrievalError,
+    NoCredentialsError,
+    PartialCredentialsError,
+)
 
 from ecotwin.errors import TwinError
 from ecotwin.storage.base import safe_key, verify
@@ -54,6 +60,10 @@ class S3ObjectStore:
             if code in {"NoSuchKey", "404", "NotFound"}:
                 raise TwinError("DATASET_NOT_FOUND", "Pinned object is missing", 404) from exc
             raise TwinError("STORAGE_UNAVAILABLE", "S3 service unavailable", 503) from exc
+        except (NoCredentialsError, PartialCredentialsError, CredentialRetrievalError) as exc:
+            raise TwinError(
+                "STORAGE_PERMISSION_DENIED", "S3 role credentials are missing or invalid", 503
+            ) from exc
         except BotoCoreError as exc:
             raise TwinError("STORAGE_UNAVAILABLE", "S3 transport unavailable", 503) from exc
 
