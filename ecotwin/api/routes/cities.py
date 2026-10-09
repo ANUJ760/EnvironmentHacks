@@ -17,6 +17,7 @@ from ecotwin.api.schemas import (
 )
 from ecotwin.db.models import (
     AirObservation,
+    AirRevisionObservation,
     AirStation,
     City,
     CitySnapshot,
@@ -252,10 +253,11 @@ def air(
     city = city_row(session, identifier)
     snapshot = active_snapshot(session, identifier)
     rows = session.execute(
-        select(AirObservation, AirStation)
+        select(AirObservation, AirStation, AirRevisionObservation.revision_id)
         .join(AirStation, AirObservation.station_id == AirStation.id)
+        .join(AirRevisionObservation, AirRevisionObservation.observation_id == AirObservation.id)
         .where(
-            AirObservation.revision_id.in_(snapshot.dataset_revision_ids),
+            AirRevisionObservation.revision_id.in_(snapshot.dataset_revision_ids),
             AirObservation.parameter == parameter,
             func.ST_Intersects(AirStation.location, city.boundary),
         )
@@ -272,7 +274,7 @@ def air(
             "unit": row.unit,
             "measured_at": row.measured_at,
             "source_url": row.source_url,
-            "revision_id": str(row.revision_id),
+            "revision_id": str(revision_id),
             "stale": (datetime.now(UTC) - row.measured_at).total_seconds() > 21600,
             "distance_from_city_centroid_m": float(
                 session.scalar(
@@ -285,7 +287,7 @@ def air(
                 )
             ),
         }
-        for row, station in rows
+        for row, station, revision_id in rows
     ]
     return {
         "evidence_class": "OBSERVED" if readings else "UNAVAILABLE",

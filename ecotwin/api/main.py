@@ -108,7 +108,7 @@ def readyz(session=Depends(session_dependency)):
     try:
         session.execute(text("SELECT 1"))
         version = session.scalar(text("SELECT version_num FROM alembic_version"))
-        if version != "0001":
+        if version != "0002":
             raise TwinError("DATABASE_NOT_READY", "Migration head is not current", 503)
         return {"status": "ready", "migration": version}
     except TwinError:

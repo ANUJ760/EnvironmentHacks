@@ -13,6 +13,7 @@ from sqlalchemy import select, text
 from ecotwin.config import get_settings
 from ecotwin.db.models import (
     AirObservation,
+    AirRevisionObservation,
     AirStation,
     City,
     DatasetRevision,
@@ -332,6 +333,24 @@ def air(
                         source_url=row["source_url"],
                         revision_id=revision.id,
                     )
+                    .on_conflict_do_nothing()
+                )
+                observation = session.scalar(
+                    select(AirObservation).where(
+                        AirObservation.station_id == station.id,
+                        AirObservation.sensor_id == row["sensor_id"],
+                        AirObservation.parameter == row["parameter"],
+                        AirObservation.measured_at == datetime.fromisoformat(row["measured_at"]),
+                    )
+                )
+                if observation.value != row["value"] or observation.unit != row["unit"]:
+                    raise TwinError(
+                        "SOURCE_REVISION_CONFLICT",
+                        "Provider revised a deduplicated reading; retain originals and review the correction",
+                    )
+                session.execute(
+                    insert(AirRevisionObservation)
+                    .values(revision_id=revision.id, observation_id=observation.id)
                     .on_conflict_do_nothing()
                 )
             successful_run(session, revision, len(seen))

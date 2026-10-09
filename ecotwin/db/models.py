@@ -266,3 +266,13 @@ class AuditEvent(Identity, Base):
     action: Mapped[str]
     resource_id: Mapped[UUID]
     details: Mapped[dict] = mapped_column(JSONB)
+
+
+class AirRevisionObservation(Base):
+    """Immutable membership lets deduplicated station readings serve multiple source revisions."""
+
+    __tablename__ = "air_revision_observations"
+    revision_id: Mapped[UUID] = mapped_column(ForeignKey("dataset_revisions.id"), primary_key=True)
+    observation_id: Mapped[UUID] = mapped_column(
+        ForeignKey("air_observations.id"), primary_key=True
+    )

@@ -107,6 +107,21 @@ def execute(session, frozen, checkpoint=lambda progress: None):
                         "DETERMINISTIC_CALCULATION",
                     )
                 )
+            metrics.append(
+                metric(
+                    "tree_cover_area_m2",
+                    areas.get(10, 0),
+                    modified.get(10, 0),
+                    "m2",
+                    "landcover_summary",
+                    "landcover-v1",
+                    sources,
+                    snapshot.model_config_sha256,
+                    city.slug,
+                    ["WorldCover_2021_reference", "area_not_individual_tree_count"],
+                    "DETERMINISTIC_CALCULATION",
+                )
+            )
         if "runoff_screen" in requested:
             config = parameters["runoff_coefficients.v1.yaml"]
             coefficients = {int(k): float(v) for k, v in config["coefficients"].items()}
@@ -129,10 +144,13 @@ def execute(session, frozen, checkpoint=lambda progress: None):
             ]
             if targets:
                 target = unary_union(targets)
-                excluded = math.fsum(
-                    p.geom.intersection(target).area * p.fraction
-                    for p in changed
-                    if p.class_code not in coefficients
+                excluded = max(
+                    math.fsum(
+                        p.geom.intersection(target).area * p.fraction
+                        for p in grid
+                        if p.class_code not in coefficients
+                    )
+                    for grid in [baseline, changed]
                 )
                 if excluded / target.area > 0.1:
                     raise TwinError(

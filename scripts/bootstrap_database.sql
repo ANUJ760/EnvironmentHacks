@@ -8,4 +8,4 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 -- GRANT DELETE ON scenario_edits TO ecotwin_api;
 -- GRANT INSERT, UPDATE ON simulation_jobs, simulation_results, audit_events TO ecotwin_worker;
 -- GRANT INSERT ON cities, dataset_revisions, import_runs, geo_features, landcover_cells,
--- weather_hours, air_stations, air_observations, facility_profiles, city_snapshots TO ecotwin_ingest;
+-- weather_hours, air_stations, air_observations, air_revision_observations, facility_profiles, city_snapshots TO ecotwin_ingest;
