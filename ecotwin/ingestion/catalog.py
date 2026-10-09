@@ -31,6 +31,7 @@ def register_object(session,city,kind,path,coverage,quality,source_url=None,lice
     from shapely.geometry import mapping
     manifest=DatasetManifest(city_id=str(city.id),source_url=revision.source_url,sha256=digest,byte_size=revision.byte_size,media_type='application/octet-stream',crs=revision.native_crs,coverage=dict(mapping(coverage)) if coverage is not None else None,native_units=quality.get('native_units',{}),normalized_units=quality.get('normalized_units',{}),captured_at=captured,source_license=license_name,attribution=attribution,processing_version='ingest-v1',upstream_revision=quality.get('version','source-bytes'))
     import tempfile
+    get_settings().ecotwin_cache_dir.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile('w',suffix='.json',delete=False,dir=get_settings().ecotwin_cache_dir) as temporary:
         temporary.write(manifest.model_dump_json())
         manifest_path=Path(temporary.name)

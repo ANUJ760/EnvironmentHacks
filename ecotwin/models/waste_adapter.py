@@ -12,7 +12,7 @@ def build_scenario(document,routes=None):
     for row in document['facilities']:
         profiles={}
         for name,profile in row['profiles'].items():
-            profiles[WasteCategory.from_str(name)]=CategoryProcessingProfile(material_recovery_rate=profile['material_recovery_rate'],landfill_residue_rate=profile['landfill_residue_rate'],process_loss_rate=profile['process_loss_rate'],specific_energy=SpecificEnergy.kwh_per_tonne(profile['specific_energy_kwh_per_tonne']),energy_efficiency=profile['energy_efficiency'])
+            profiles[WasteCategory.from_str(name)]=CategoryProcessingProfile(material_recovery_rate=profile['material_recovery_rate'],landfill_residue_rate=profile['landfill_residue_rate'],process_loss_rate=profile['process_loss_rate'],specific_energy=SpecificEnergy.from_kwh_per_tonne(profile['specific_energy_kwh_per_tonne']),energy_efficiency=profile['energy_efficiency'])
         if not profiles:
             raise TwinError('INSUFFICIENT_INPUT_DATA','Facility processing profiles required')
         facilities.append(ProcessingFacility(name=row['facility_id'],capacity=Mass.tonnes(row['capacity_tpd']),default_profile=next(iter(profiles.values())),category_profiles=profiles,accepted_categories={WasteCategory.from_str(c) for c in row['accepted_categories']}))
