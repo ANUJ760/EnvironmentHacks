@@ -1,0 +1,18 @@
+.git
+.agents
+.codex
+.aws
+ec otwin_agent_handoff
+ecotwin_agent_handoff
+*Handoff*.zip
+*.docx
+.venv
+__pycache__
+*.pyc
+.env
+.env.*
+data/raw
+data/processed
+node_modules
+htmlcov
+.pytest_cache

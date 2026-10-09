@@ -1,0 +1,58 @@
+name: ecotwin
+x-runtime: &runtime
+  build: .
+  image: ecotwin-backend:local
+  env_file: .env
+  environment:
+    DATABASE_URL: postgresql+psycopg://ecotwin:ecotwin_local_only@db:5432/ecotwin
+  volumes:
+    - ./data:/app/data:ro
+  tmpfs:
+    - /tmp:uid=10001,gid=10001,mode=1770
+  read_only: true
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+  depends_on:
+    migrate: {condition: service_completed_successfully}
+services:
+  db:
+    image: postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5
+    environment:
+      POSTGRES_DB: ecotwin
+      POSTGRES_USER: ecotwin
+      POSTGRES_PASSWORD: ecotwin_local_only
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U ecotwin -d ecotwin"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  migrate:
+    <<: *runtime
+    command: [alembic, upgrade, head]
+    healthcheck: {disable: true}
+    depends_on:
+      db: {condition: service_healthy}
+  api:
+    <<: *runtime
+    command: [uvicorn, ecotwin.api.main:app, --host, 0.0.0.0, --port, "8000"]
+    ports: ["127.0.0.1:8000:8000"]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/readyz', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  worker:
+    <<: *runtime
+    command: [ecotwin, jobs, work]
+    healthcheck: {disable: true}
+    stop_grace_period: 15s
+  ingest:
+    <<: *runtime
+    profiles: [ingestion]
+    command: [ecotwin, --help]
+    healthcheck: {disable: true}
+    volumes: ["./data:/app/data:rw"]
+volumes:
+  pgdata:
