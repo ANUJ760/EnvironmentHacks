@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" width="200" height="48">
+  <rect x="2" y="4" width="40" height="40" rx="10" fill="#0C8055"/>
+  <path d="M22 12C18 12 14 16 14 22C14 29 22 34 22 34C22 34 30 29 30 22C30 16 26 12 22 12Z" fill="#2F9E81"/>
+  <circle cx="22" cy="21" r="3.5" fill="#F6F8F4"/>
+  <text x="52" y="32" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="22" fill="#173F33" letter-spacing="-0.5">Eco<tspan fill="#0C8055">Twin</tspan></text>
+</svg>

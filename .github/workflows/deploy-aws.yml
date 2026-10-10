@@ -51,6 +51,14 @@ jobs:
           done
           aws ecs update-service --cluster "$CLUSTER" --service "$API_SERVICE" --task-definition "$API_TASK"
           aws ecs update-service --cluster "$CLUSTER" --service "$WORKER_SERVICE" --task-definition "$WORKER_TASK"
-          aws ecs wait services-stable --cluster "$CLUSTER" --services "$API_SERVICE" "$WORKER_SERVICE"
+          if [ -n "$FRONTEND_SERVICE" ] && [ -n "$FRONTEND_TASK" ]; then
+            aws ecs update-service --cluster "$CLUSTER" --service "$FRONTEND_SERVICE" --task-definition "$FRONTEND_TASK"
+            aws ecs wait services-stable --cluster "$CLUSTER" --services "$API_SERVICE" "$WORKER_SERVICE" "$FRONTEND_SERVICE"
+          else
+            aws ecs wait services-stable --cluster "$CLUSTER" --services "$API_SERVICE" "$WORKER_SERVICE"
+          fi
           curl --fail --silent --show-error "$API_URL/readyz"
           curl --fail --silent --show-error "$API_URL/v1/cities"
+          if [ -n "$FRONTEND_URL" ]; then
+            curl --fail --silent --show-error "$FRONTEND_URL/api/health"
+          fi

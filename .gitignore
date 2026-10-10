@@ -9,6 +9,9 @@ __pycache__/
 .env.*
 !.env.example
 !frontend/.env.example
+!frontend/.env.production.example
+frontend/.next/
+*.tsbuildinfo
 data/raw/**
 !data/raw/**/
 !data/raw/**/.gitkeep

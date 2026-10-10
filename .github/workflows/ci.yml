@@ -36,7 +36,7 @@ jobs:
       - run: uv run python scripts/generate_openapi.py && git diff --exit-code backend/openapi.json
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with: {node-version: '22'}
-      - run: npm ci --ignore-scripts && npm run generate && npm run typecheck && git diff --exit-code src/lib/api-types.ts
+      - run: npm ci && npm run api:check && npm run lint && npm run typecheck && npm run test && npm run build
         working-directory: frontend
       - run: uv run pip-audit
       - run: docker build -t ecotwin-backend:ci . && docker run --rm ecotwin-backend:ci ecotwin --help

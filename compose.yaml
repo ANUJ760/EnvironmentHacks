@@ -53,6 +53,25 @@ services:
     profiles: [ingestion]
     command: [ecotwin, --help]
     healthcheck: {disable: true}
-    volumes: ["./data:/app/data:rw"]
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: ecotwin-frontend:local
+    ports: ["127.0.0.1:3000:3000"]
+    environment:
+      ECOTWIN_API_INTERNAL_URL: http://api:8000
+      APP_BASE_URL: http://localhost:3000
+      APP_ENV: development
+      FRONTEND_AUTH_MODE: dev
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: local-development-secret-only-change-in-production-must-be-long-enough-32bytes
+    depends_on:
+      api: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://localhost:3000/api/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 volumes:
   pgdata:

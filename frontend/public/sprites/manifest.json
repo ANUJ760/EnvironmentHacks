@@ -1,0 +1,17 @@
+{
+  "name": "ecotwin-sprites",
+  "version": "1.0.0",
+  "author": "EcoTwin Project Team",
+  "license": "MIT",
+  "sprites": {
+    "vegetation_tree_generic": "sprites/vegetation_tree_generic.svg",
+    "building_residential": "sprites/building_residential.svg",
+    "building_commercial": "sprites/building_commercial.svg",
+    "water_surface": "sprites/water_surface.svg",
+    "park_grass": "sprites/park_grass.svg",
+    "facility_waste": "sprites/facility_waste.svg",
+    "facility_solar": "sprites/facility_solar.svg",
+    "road_major": "sprites/road_major.svg",
+    "air_station": "sprites/air_station.svg"
+  }
+}
