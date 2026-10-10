@@ -16,6 +16,7 @@ data/raw/**
 !data/raw/**/
 !data/raw/**/.gitkeep
 data/processed/**
+frontend/public/maps/*.geojson
 !data/processed/**/
 !data/processed/**/.gitkeep
 .coverage*
