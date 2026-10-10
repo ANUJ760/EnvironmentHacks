@@ -11,6 +11,9 @@ __pycache__/
 !frontend/.env.example
 !frontend/.env.production.example
 frontend/.next/
+frontend/.next-check/
+frontend/test-results/
+frontend/playwright-report/
 *.tsbuildinfo
 data/raw/**
 !data/raw/**/

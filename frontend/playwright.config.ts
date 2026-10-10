@@ -11,6 +11,10 @@ export default defineConfig({
   use: {
     baseURL: process.env.APP_BASE_URL || 'http://localhost:3000',
     trace: 'on-first-retry',
+    launchOptions: {
+      executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
+      args: ['--enable-webgl', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+    },
   },
   projects: [
     {

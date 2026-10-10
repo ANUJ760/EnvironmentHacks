@@ -2,6 +2,7 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  distDir: process.env.ECOTWIN_NEXT_DIST_DIR || '.next',
   poweredByHeader: false,
   reactStrictMode: true,
   outputFileTracingIncludes: {
