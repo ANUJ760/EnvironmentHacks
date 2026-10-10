@@ -5,7 +5,7 @@ Production-oriented user-facing web application and scenario simulation lab for 
 ## Tech Stack
 - **Framework**: Next.js 15 (App Router, Standalone SSR)
 - **UI & Components**: React 19, Tailwind CSS, Lucide icons
-- **2D Map Rendering**: PixiJS v8 (WebGL with accessible DOM/SVG fallback)
+- **City Rendering**: lightweight MapLibre illustrated 2D / aerial imagery; PixiJS lab and accessible DOM/SVG fallback
 - **Data & State**: TanStack Query v5, Zustand v5, Zod
 - **API Contract**: openapi-typescript & openapi-fetch (strictly synced with `backend/openapi.json`)
 - **Authentication**: NextAuth.js v4 (Cognito OIDC in production, local dev token injection in development)
@@ -42,3 +42,11 @@ Production-oriented user-facing web application and scenario simulation lab for 
 - `npm run test:e2e`: Run Playwright end-to-end tests
 - `npm run api:generate`: Generate TypeScript interfaces from backend OpenAPI spec
 - `npm run api:check`: Ensure generated types have zero drift against backend spec
+
+## Interactive removal impacts
+
+Click a tree, building, park or road to open **Impact**. Adjust assumptions and compare
+before/after without changing the source city. Live Open-Meteo forecasts drive
+research-backed screening estimates. An existing local Ollama Gemma/Qwen service
+can optionally organize verified findings. Setup, sources and important accuracy
+limits: [Removal previews](../docs/REMOVAL_PREVIEWS.md).

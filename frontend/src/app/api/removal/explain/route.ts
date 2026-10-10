@@ -28,7 +28,6 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  if (busy) return NextResponse.json({ detail: 'Local AI is already explaining another preview. Try again shortly.' }, { status: 429 });
   let body: { cityId: string; request: unknown };
   try {
     const text = await req.text();
@@ -36,6 +35,9 @@ export async function POST(req: Request) {
     body = JSON.parse(text);
     if (!/^[a-f0-9-]{36}$/i.test(body.cityId) || !body.request) throw new Error('Invalid city');
   } catch { return NextResponse.json({ detail: 'A valid city and removal request are required.' }, { status: 400 }); }
+  // Claim the slot after parsing: checking before awaited body reads permits
+  // simultaneous requests to both see an idle model.
+  if (busy) return NextResponse.json({ detail: 'Local AI is already explaining another preview. Try again shortly.' }, { status: 429 });
   busy = true;
   try {
     const env = getServerEnv();

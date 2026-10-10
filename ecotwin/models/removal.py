@@ -239,9 +239,13 @@ def evaluate_removal(request: RemovalRequest, area: float, samples: list[dict]):
                 "m²",
                 area,
                 0,
-                "MAPPED_GEOMETRY",
-                "Area in the city's projected metric CRS",
-                "OSM footprints may be dated or incomplete; map tiles can contain simplified outlines.",
+                "ASSUMED_INPUT" if kind == "road" else "MAPPED_GEOMETRY",
+                "Mapped centerline segment buffered by assumed width in the city's metric CRS"
+                if kind == "road"
+                else "Area in the city's projected metric CRS",
+                "Road width and segment length are scenario assumptions, not surveyed measurements."
+                if kind == "road"
+                else "OSM footprints may be dated or incomplete; map tiles can contain simplified outlines.",
             )
         )
         findings.append(
@@ -263,7 +267,7 @@ def evaluate_removal(request: RemovalRequest, area: float, samples: list[dict]):
             findings.append(
                 {
                     "id": "habitat",
-                    "text": "Removing this green space changes habitat and removes vegetation benefits. Species counts, mortality and a numerical temperature change cannot be inferred from a park outline.",
+                    "text": "Removing the mapped park changes its use and potentially its habitat. Net vegetation benefits depend on the replacement; replanting can retain some functions. Species counts and a numerical temperature change cannot be inferred from a park outline.",
                     "source": "epa",
                 }
             )

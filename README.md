@@ -13,6 +13,8 @@ Real datasets are **not bundled**. Download slots and exact import steps:
 [Dataset onboarding](docs/DATASETS.md). Setup, models and release limitations:
 [Operations](docs/OPERATIONS.md). Cloud deployment: [Terraform runbook](infra/terraform/README.md).
 Actual validation evidence: [Implementation report](docs/implementation-report.json).
+Interactive city removal impacts, live forecast data and optional local Ollama:
+[Removal previews](docs/REMOVAL_PREVIEWS.md).
 The handoff guide pack is private and excluded from Git and Docker builds.
 
 The original library overview below remains for compatibility. Its future-grid/EV/heat
