@@ -17,6 +17,10 @@ export class CityRenderer {
   public handleContainer: Container;
 
   private isDestroyed: boolean = false;
+  private features: any[] = [];
+  private layerVisibility = { buildings: true, roads: true, parks: true, water: true, waste: true, air: true };
+  private selectedFeature: any | null = null;
+  private edits: ScenarioEdit[] = [];
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -34,8 +38,9 @@ export class CityRenderer {
 
   public async init(): Promise<boolean> {
     try {
-      this.app = new Application();
-      await this.app.init({
+      const app = new Application();
+      this.app = app;
+      await app.init({
         resizeTo: this.container,
         backgroundAlpha: 0,
         antialias: true,
@@ -43,7 +48,9 @@ export class CityRenderer {
         preference: 'webgl',
       });
 
-      if (this.isDestroyed || !this.app.canvas) {
+      if (this.isDestroyed) {
+        app.destroy(true, { children: true });
+        this.app = null;
         return false;
       }
 
@@ -69,6 +76,9 @@ export class CityRenderer {
   public resize(width: number, height: number) {
     if (this.app && !this.isDestroyed) {
       this.camera.setViewport(width, height);
+      this.renderFeatures(this.features, this.layerVisibility);
+      this.renderSelection(this.selectedFeature);
+      this.renderScenarioEdits(this.edits);
     }
   }
 
@@ -85,11 +95,11 @@ export class CityRenderer {
   ) {
     if (!this.app || this.isDestroyed) return;
 
-    this.terrainContainer.removeChildren();
-    this.parksContainer.removeChildren();
-    this.roadsContainer.removeChildren();
-    this.buildingsContainer.removeChildren();
-    this.markersContainer.removeChildren();
+    this.features = features;
+    this.layerVisibility = layerVisibility;
+    for (const container of [this.terrainContainer, this.parksContainer, this.roadsContainer, this.buildingsContainer, this.markersContainer]) {
+      this.clearGraphics(container);
+    }
 
     this.terrainContainer.visible = layerVisibility.water;
     this.parksContainer.visible = layerVisibility.parks;
@@ -103,14 +113,14 @@ export class CityRenderer {
       const category = (feat.properties?.category || feat.properties?.class || '').toLowerCase();
 
       if (category.includes('water') && layerVisibility.water) {
-        this.drawPolygon(this.terrainContainer, geom, 0x1e88e5, 0.7, 0x1565c0);
-      } else if ((category.includes('park') || category.includes('vegetation') || category.includes('forest')) && layerVisibility.parks) {
-        this.drawPolygon(this.parksContainer, geom, 0x81c784, 0.8, 0x388e3c);
+        this.drawGeometry(this.terrainContainer, geom, 0x1e88e5, 0.7, 0x1565c0);
+      } else if ((category.includes('park') || category.includes('vegetation') || category.includes('forest') || category === 'wood') && layerVisibility.parks) {
+        this.drawGeometry(this.parksContainer, geom, 0x81c784, 0.8, 0x388e3c);
       } else if (category.includes('road') && layerVisibility.roads) {
-        this.drawLine(this.roadsContainer, geom, 0x37474f, 3);
+        this.drawGeometry(this.roadsContainer, geom, 0x37474f, 1, 0x37474f, 3);
       } else if ((category.includes('building') || category.includes('residential') || category.includes('commercial')) && layerVisibility.buildings) {
         const isCommercial = category.includes('commercial');
-        this.drawPolygon(this.buildingsContainer, geom, isCommercial ? 0x90a4ae : 0xd7ccc8, 0.9, 0x546e7a);
+        this.drawGeometry(this.buildingsContainer, geom, isCommercial ? 0x90a4ae : 0xd7ccc8, 0.9, 0x546e7a);
       } else {
         // Generic polygon
         if (geom.type === 'Polygon' || geom.type === 'MultiPolygon') {
@@ -122,11 +132,13 @@ export class CityRenderer {
         }
       }
     }
+    this.container.dataset.renderedFeatures = String(features.length);
   }
 
   public renderSelection(selectedFeature: any | null) {
     if (!this.app || this.isDestroyed) return;
-    this.selectionContainer.removeChildren();
+    this.selectedFeature = selectedFeature;
+    this.clearGraphics(this.selectionContainer);
 
     if (!selectedFeature || !selectedFeature.geometry) return;
 
@@ -140,7 +152,8 @@ export class CityRenderer {
 
   public renderScenarioEdits(edits: ScenarioEdit[]) {
     if (!this.app || this.isDestroyed) return;
-    this.diffContainer.removeChildren();
+    this.edits = edits;
+    this.clearGraphics(this.diffContainer);
 
     for (const edit of edits) {
       if (edit.edit_type === 'LAND_COVER_RECLASSIFY') {
@@ -162,13 +175,11 @@ export class CityRenderer {
     strokeWidth: number = 1
   ) {
     const g = new Graphics();
-    g.fill({ color: fillColor, alpha: fillAlpha });
-    g.stroke({ color: strokeColor, width: strokeWidth });
 
     const rings = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
 
     for (const poly of rings) {
-      for (const ring of poly) {
+      for (const [ringIndex, ring] of poly.entries()) {
         if (!Array.isArray(ring) || ring.length < 3) continue;
         const screenPoints: number[] = [];
         for (const pt of ring) {
@@ -178,6 +189,12 @@ export class CityRenderer {
 
         if (screenPoints.length >= 6) {
           g.poly(screenPoints);
+          if (ringIndex === 0) {
+            g.fill({ color: fillColor, alpha: fillAlpha });
+            g.stroke({ color: strokeColor, width: strokeWidth });
+          } else {
+            g.cut();
+          }
         }
       }
     }
@@ -185,9 +202,22 @@ export class CityRenderer {
     container.addChild(g);
   }
 
+  private drawGeometry(container: Container, geom: any, fill: number, alpha: number, stroke: number, width = 1) {
+    if (geom.type === 'Polygon' || geom.type === 'MultiPolygon') {
+      this.drawPolygon(container, geom, fill, alpha, stroke, width);
+    } else if (geom.type === 'LineString' || geom.type === 'MultiLineString') {
+      this.drawLine(container, geom, stroke, width);
+    } else if (geom.type === 'Point') {
+      this.drawPoint(container, geom, fill, 4);
+    } else if (geom.type === 'MultiPoint') {
+      for (const coordinates of geom.coordinates) this.drawPoint(container, { type: 'Point', coordinates }, fill, 4);
+    } else if (geom.type === 'GeometryCollection') {
+      for (const geometry of geom.geometries) this.drawGeometry(container, geometry, fill, alpha, stroke, width);
+    }
+  }
+
   private drawLine(container: Container, geom: any, strokeColor: number, strokeWidth: number) {
     const g = new Graphics();
-    g.stroke({ color: strokeColor, width: strokeWidth });
 
     const lines = geom.type === 'LineString' ? [geom.coordinates] : geom.coordinates;
 
@@ -202,6 +232,7 @@ export class CityRenderer {
         const [x, y] = this.camera.worldToScreen(pt[0], pt[1]);
         g.lineTo(x, y);
       }
+      g.stroke({ color: strokeColor, width: strokeWidth });
     }
 
     container.addChild(g);
@@ -228,12 +259,16 @@ export class CityRenderer {
   public destroy() {
     this.isDestroyed = true;
     try {
-      if (this.app) {
+      if (this.app?.renderer) {
         this.app.destroy(true, { children: true, texture: true });
         this.app = null;
       }
     } catch {
       // Ignore cleanup error on unmount
     }
+  }
+
+  private clearGraphics(container: Container) {
+    for (const child of container.removeChildren()) child.destroy();
   }
 }

@@ -1,29 +1,18 @@
 'use client';
 
-import React, { useState, use } from 'react';
+import React, { use } from 'react';
 import Link from 'next/link';
 import { useCity } from '@/hooks/useCities';
-import { useCityFeatures } from '@/hooks/useCityData';
-import { PixiMap } from '@/components/map/PixiMap';
+import { CityMap } from '@/components/map/CityMap';
+import type { Geometry } from 'geojson';
 import { LeftRail } from '@/components/shell/LeftRail';
 import { RightInspector } from '@/components/shell/RightInspector';
-import { computeBBoxFromGeometry, formatBBox } from '@/lib/geo';
 import { ArrowLeft, Play, AlertCircle } from 'lucide-react';
 
 export default function CityViewerPage({ params }: { params: Promise<{ cityId: string }> }) {
   const { cityId } = use(params);
   const { data: city, isLoading, isError } = useCity(cityId);
 
-  // Viewport BBox state
-  const [currentBbox, setCurrentBbox] = useState<string>('');
-
-  // Initial bbox from boundary
-  const defaultBbox = city?.boundary ? formatBBox(computeBBoxFromGeometry(city.boundary)) : '';
-  const effectiveBbox = currentBbox || defaultBbox;
-
-  // Features query
-  const { data: featureCollection } = useCityFeatures(cityId, effectiveBbox);
-  const features = featureCollection?.features || [];
 
   if (isLoading) {
     return (
@@ -60,11 +49,11 @@ export default function CityViewerPage({ params }: { params: Promise<{ cityId: s
 
       {/* Main Map Viewport */}
       <div className="flex-1 flex flex-col relative overflow-hidden">
-        <PixiMap
+        <CityMap
           cityId={cityId}
-          boundary={city.boundary}
-          features={features}
-          onBBoxChange={(bbox) => setCurrentBbox(bbox)}
+          citySlug={city.slug}
+          cityName={city.display_name}
+          boundary={city.boundary as unknown as Geometry}
         />
       </div>
 

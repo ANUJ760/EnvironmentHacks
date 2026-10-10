@@ -3,8 +3,8 @@
 import React, { useState, use } from 'react';
 import Link from 'next/link';
 import { useCity } from '@/hooks/useCities';
-import { useCityFeatures } from '@/hooks/useCityData';
-import { PixiMap } from '@/components/map/PixiMap';
+import { CityMap } from '@/components/map/CityMap';
+import type { Geometry } from 'geojson';
 import { LeftRail } from '@/components/shell/LeftRail';
 import { InterventionEditor } from '@/components/scenarios/InterventionEditor';
 import { ScenarioEditsList } from '@/components/scenarios/ScenarioEditsList';
@@ -20,17 +20,11 @@ export default function ScenarioLabPage({ params }: { params: Promise<{ cityId: 
   const { cityId } = use(params);
   const { data: city, isLoading, isError } = useCity(cityId);
 
-  const [currentBbox, setCurrentBbox] = useState<string>('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isRunModalOpen, setIsRunModalOpen] = useState(false);
 
   const { scenarioId, scenarioName, snapshotId, edits, state } = useScenarioStore();
 
-  const defaultBbox = city?.boundary ? formatBBox(computeBBoxFromGeometry(city.boundary)) : '';
-  const effectiveBbox = currentBbox || defaultBbox;
-
-  const { data: featureCollection } = useCityFeatures(cityId, effectiveBbox);
-  const features = featureCollection?.features || [];
 
   if (isLoading) {
     return (
@@ -111,11 +105,12 @@ export default function ScenarioLabPage({ params }: { params: Promise<{ cityId: 
 
         {/* Center Canvas Viewport */}
         <div className="flex-1 flex flex-col relative overflow-hidden">
-          <PixiMap
+          <CityMap
             cityId={cityId}
-            boundary={city.boundary}
-            features={features}
-            onBBoxChange={(bbox) => setCurrentBbox(bbox)}
+            citySlug={city.slug}
+            cityName={city.display_name}
+            boundary={city.boundary as unknown as Geometry}
+            isScenario
           />
         </div>
 

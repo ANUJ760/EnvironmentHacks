@@ -42,6 +42,7 @@
     "@turf/helpers": "^7.4.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.475.0",
+    "maplibre-gl": "^6.13.0",
     "next": "^15.2.1",
     "next-auth": "^4.24.15",
     "openapi-fetch": "^0.13.8",

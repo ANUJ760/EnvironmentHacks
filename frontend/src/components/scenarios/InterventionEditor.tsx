@@ -38,6 +38,11 @@ export function InterventionEditor({ boundary }: InterventionEditorProps) {
     e.preventDefault();
     setFormError(null);
 
+    if (selectedFeature?.properties?.within_analysis_area === false) {
+      setFormError('Select a feature inside the dashed analysis area. The wider city is available for exploration.');
+      return;
+    }
+
     if (!targetGeometry) {
       setFormError('Please select a polygon feature on the map to apply this intervention.');
       return;
@@ -63,6 +68,11 @@ export function InterventionEditor({ boundary }: InterventionEditorProps) {
   const handleAddSolar = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+
+    if (selectedFeature?.properties?.within_analysis_area === false) {
+      setFormError('Select a building inside the dashed analysis area to install solar PV.');
+      return;
+    }
 
     if (!targetGeometry) {
       setFormError('Please select a footprint on the map to install solar PV.');

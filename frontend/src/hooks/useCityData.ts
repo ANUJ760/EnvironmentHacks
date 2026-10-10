@@ -18,8 +18,15 @@ export function useCityFeatures(cityId?: string, bbox?: string, category?: strin
       if (category) {
         url += `&category=${encodeURIComponent(category)}`;
       }
-      const { data } = await fetchGateway<FeatureCollection>(url, { signal });
-      return data;
+      const features: FeatureCollection['features'] = [];
+      let cursor: string | null | undefined;
+      do {
+        const pageUrl = cursor ? `${url}&cursor=${encodeURIComponent(cursor)}` : url;
+        const { data } = await fetchGateway<FeatureCollection>(pageUrl, { signal });
+        features.push(...data.features);
+        cursor = data.next_cursor;
+      } while (cursor);
+      return { type: 'FeatureCollection' as const, features, next_cursor: null };
     },
     enabled: !!cityId && !!bbox,
     staleTime: 5 * 60 * 1000,

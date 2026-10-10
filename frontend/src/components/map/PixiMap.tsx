@@ -24,8 +24,11 @@ export function PixiMap({
 }: PixiMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<CityRenderer | null>(null);
+  const onBBoxChangeRef = useRef(onBBoxChange);
+  onBBoxChangeRef.current = onBBoxChange;
 
-  const [isReady, setIsReady] = useState(false);
+  const [readyRenderer, setReadyRenderer] = useState<CityRenderer | null>(null);
+  const isReady = readyRenderer !== null;
   const [webGlFailed, setWebGlFailed] = useState(false);
   const [isSvgMode, setIsSvgMode] = useState(false);
   const [showFeatureList, setShowFeatureList] = useState(false);
@@ -45,6 +48,7 @@ export function PixiMap({
 
     const renderer = new CityRenderer(container);
     rendererRef.current = renderer;
+    setReadyRenderer(null);
 
     renderer.init().then((success) => {
       if (!active) {
@@ -52,13 +56,14 @@ export function PixiMap({
         return;
       }
       if (success) {
-        setIsReady(true);
+        setWebGlFailed(false);
+        setReadyRenderer(renderer);
         // Initial boundary fit
         if (boundary) {
           const bbox = computeBBoxFromGeometry(boundary);
           renderer.camera.fitBounds(bbox);
-          if (onBBoxChange) {
-            onBBoxChange(`${bbox.minLon},${bbox.minLat},${bbox.maxLon},${bbox.maxLat}`);
+          if (onBBoxChangeRef.current) {
+            onBBoxChangeRef.current(`${bbox.minLon},${bbox.minLat},${bbox.maxLon},${bbox.maxLat}`);
           }
         }
       } else {
@@ -82,12 +87,12 @@ export function PixiMap({
       renderer.destroy();
       rendererRef.current = null;
     };
-  }, [isSvgMode, boundary, onBBoxChange]);
+  }, [isSvgMode, boundary]);
 
   // Update rendering when features or layers change
   useEffect(() => {
-    const renderer = rendererRef.current;
-    if (!renderer || !isReady) return;
+    const renderer = readyRenderer;
+    if (!renderer) return;
 
     renderer.renderFeatures(features, {
       buildings: layers.buildings,
@@ -97,21 +102,21 @@ export function PixiMap({
       waste: layers.waste,
       air: layers.air,
     });
-  }, [features, layers, isReady]);
+  }, [features, layers, readyRenderer]);
 
   // Update selection
   useEffect(() => {
-    const renderer = rendererRef.current;
-    if (!renderer || !isReady) return;
+    const renderer = readyRenderer;
+    if (!renderer) return;
     renderer.renderSelection(selectedFeature);
-  }, [selectedFeature, isReady]);
+  }, [selectedFeature, readyRenderer]);
 
   // Update scenario edits preview
   useEffect(() => {
-    const renderer = rendererRef.current;
-    if (!renderer || !isReady) return;
+    const renderer = readyRenderer;
+    if (!renderer) return;
     renderer.renderScenarioEdits(edits);
-  }, [edits, isReady]);
+  }, [edits, readyRenderer]);
 
   // Handle Pan and Zoom
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -240,7 +245,7 @@ export function PixiMap({
   };
 
   return (
-    <div className="relative w-full h-full min-h-[500px] overflow-hidden bg-[#F6F8F4] select-none">
+    <div data-map-ready={isReady && !isSvgMode} aria-busy={!isSvgMode && !isReady} className="relative w-full h-full min-h-[500px] overflow-hidden bg-[#F6F8F4] select-none">
       <MapToolbar
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
