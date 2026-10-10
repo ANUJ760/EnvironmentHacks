@@ -1,18 +1,21 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Info, MapPin, Wind, CloudSun, Layers, Database, X } from 'lucide-react';
 import { useScenarioStore } from '@/stores/scenarioStore';
 import { useLandcover, useWeather, useAir, useDatasets } from '@/hooks/useCityData';
 import { WORLDCOVER_CLASSES } from '@/lib/scenarios';
+import { RemovalPanel } from '@/components/map/RemovalPanel';
+import { removableKind } from '@/lib/removal';
 
 interface RightInspectorProps {
   cityId?: string;
 }
 
 export function RightInspector({ cityId }: RightInspectorProps) {
-  const [activeTab, setActiveTab] = useState<'inspect' | 'environment' | 'sources'>('inspect');
+  const [activeTab, setActiveTab] = useState<'inspect' | 'removal' | 'environment' | 'sources'>('inspect');
   const { selectedFeature, setSelectedFeature } = useScenarioStore();
+  useEffect(() => { if (removableKind(selectedFeature)) setActiveTab('removal'); }, [selectedFeature]);
 
   const { data: landcover } = useLandcover(cityId);
   const { data: weather } = useWeather(cityId);
@@ -25,6 +28,7 @@ export function RightInspector({ cityId }: RightInspectorProps) {
       aria-label="Contextual Inspector"
     >
       <div className="flex border-b border-border bg-slate-50 text-xs font-semibold">
+        <button type="button" onClick={() => setActiveTab('removal')} className={`flex-1 py-2.5 px-2 border-b-2 text-[11px] ${activeTab === 'removal' ? 'border-primary text-primary bg-white' : 'border-transparent text-muted'}`}>Impact</button>
         <button
           type="button"
           onClick={() => setActiveTab('inspect')}
@@ -64,6 +68,7 @@ export function RightInspector({ cityId }: RightInspectorProps) {
       </div>
 
       <div className="p-4 flex-1 text-xs space-y-4">
+        {activeTab === 'removal' && cityId && <RemovalPanel cityId={cityId} key={JSON.stringify([selectedFeature?.geometry, selectedFeature?.properties?.clicked_location])} />}
         {/* Tab 1: Feature Inspector */}
         {activeTab === 'inspect' && (
           <div>

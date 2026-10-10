@@ -7,6 +7,7 @@ import { Building2, CloudSun, Focus, Globe2, Layers3, MapPin, Minus, Plus, Rotat
 import { cityVisualConfig, createCityStyle, CITY_LAYER_GROUPS, type CityViewMode } from '@/lib/rendering/city-style';
 import { useLayerStore } from '@/stores/layerStore';
 import { useScenarioStore } from '@/stores/scenarioStore';
+import { useRemovalStore } from '@/stores/removalStore';
 import { useAir, useLandcover, useWeather } from '@/hooks/useCityData';
 import { computeBBoxFromGeometry, isPointInPolygon } from '@/lib/geo';
 import { WORLDCOVER_CLASSES } from '@/lib/scenarios';
@@ -53,6 +54,8 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
   const [weatherEffects, setWeatherEffects] = useState(true);
   const layers = useLayerStore();
   const { selectedFeature, setSelectedFeature, edits } = useScenarioStore();
+  const removalPreview = useRemovalStore(state => state.preview);
+  const showingAfter = useRemovalStore(state => state.showingAfter);
   const { data: weather } = useWeather(cityId);
   const { data: landcover } = useLandcover(cityId);
   const { data: air } = useAir(cityId);
@@ -143,18 +146,24 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
         }, 120);
       });
       map.on('click', event => {
-        const hitLayers = ['building-roofs', 'aerial-building-hit', 'parks', 'water', 'roads', 'air-stations'].filter(id => map.getLayer(id));
+        const hitLayers = ['tree-canopies', 'building-roofs', 'aerial-building-hit', 'parks', 'water', 'roads', 'air-stations'].filter(id => map.getLayer(id));
         const hit = map.queryRenderedFeatures(event.point, { layers: hitLayers })[0];
-        if (!hit) { setSelectedFeature(null); return; }
-        const category = ['building-roofs', 'aerial-building-hit'].includes(hit.layer.id) ? 'building' : hit.layer.id === 'parks' ? 'park' : hit.layer.id === 'water' ? 'water' : hit.layer.id === 'air-stations' ? 'air_station' : 'road';
-        setSelectedFeature({ type: 'Feature', id: hit.id, geometry: hit.geometry, properties: { ...hit.properties, name: hit.properties?.name || (category === 'building' ? 'Mapped building' : category), category, source: category === 'air_station' ? 'OpenAQ' : 'OpenStreetMap / OpenFreeMap', within_analysis_area: isPointInPolygon([event.lngLat.lng, event.lngLat.lat], boundary), illustration_note: category === 'building' ? 'Real mapped footprint; roof colors and textures are illustrative.' : undefined } });
+        if (!hit) { useRemovalStore.getState().setPreview(null); setSelectedFeature(null); return; }
+        const category = hit.layer.id === 'tree-canopies' ? 'mapped_tree' : ['building-roofs', 'aerial-building-hit'].includes(hit.layer.id) ? 'building' : hit.layer.id === 'parks' ? 'park' : hit.layer.id === 'water' ? 'water' : hit.layer.id === 'air-stations' ? 'air_station' : 'road';
+        let geometry = hit.geometry;
+        if (geometry.type === 'MultiPolygon') {
+          const polygon = geometry.coordinates.find(coordinates => isPointInPolygon([event.lngLat.lng, event.lngLat.lat], { type: 'Polygon', coordinates }));
+          if (polygon) geometry = { type: 'Polygon', coordinates: polygon };
+        }
+        useRemovalStore.getState().setPreview(null);
+        setSelectedFeature({ type: 'Feature', id: hit.id, geometry, properties: { ...hit.properties, clicked_location: [event.lngLat.lng, event.lngLat.lat], name: hit.properties?.name || (category === 'building' ? 'Mapped building' : category === 'mapped_tree' ? 'Mapped tree' : category), category, source: category === 'air_station' ? 'OpenAQ' : 'OpenStreetMap / OpenFreeMap', within_analysis_area: isPointInPolygon([event.lngLat.lng, event.lngLat.lat], boundary), illustration_note: category === 'building' ? 'Real mapped footprint; roof colors and textures are illustrative.' : undefined } });
       });
       map.on('mousemove', event => {
         const now = performance.now();
         if (now - lastHoverAt < 50 || map.isMoving()) return;
         lastHoverAt = now;
         if (!map.isStyleLoaded()) return;
-        const hits = map.queryRenderedFeatures(event.point, { layers: ['building-roofs', 'aerial-building-hit', 'parks'].filter(id => map.getLayer(id)) });
+        const hits = map.queryRenderedFeatures(event.point, { layers: ['tree-canopies', 'building-roofs', 'aerial-building-hit', 'parks', 'roads'].filter(id => map.getLayer(id)) });
         map.getCanvas().style.cursor = hits.length ? 'pointer' : '';
       });
       observer = new ResizeObserver(() => map.resize());
@@ -167,10 +176,16 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
       observer?.disconnect();
       mapRef.current?.remove();
       mapRef.current = null;
+      useRemovalStore.getState().setPreview(null);
     };
   }, [config, boundary, setSelectedFeature]);
 
   useEffect(() => { if (readyMap) applyVisibility(readyMap, layers, mode); }, [readyMap, layers, mode]);
+
+  useEffect(() => {
+    if (!readyMap) return;
+    setSource(readyMap, 'removal', { type: 'FeatureCollection', features: removalPreview && showingAfter ? [{ type: 'Feature', properties: { color: removalPreview.color }, geometry: removalPreview.geometry }] : [] });
+  }, [readyMap, removalPreview, showingAfter]);
 
   useEffect(() => {
     if (!readyMap) return;
@@ -244,6 +259,7 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
       <div className="absolute bottom-6 left-5 z-10 city-map-panel rounded-2xl px-4 py-3 text-[11px] max-w-[330px]">
         <div className="flex items-center gap-2 text-[#5a6f51] font-semibold"><MapPin size={13} /> {isScenario ? 'Scenario workspace' : 'Real geography. Playful perspective.'}</div>
         <p className="text-[10px] text-[#8a917c] mt-1">Drag to explore · scroll to zoom · click a building to inspect</p>
+        <p className="text-[10px] text-[#5d7953] mt-1">Click trees, parks or roads to explore removal consequences.</p>
         <div className="flex gap-4 mt-2.5 pt-2.5 border-t border-[#e5e7d8] text-[#6f7e61]"><span className="flex items-center gap-1.5"><Building2 size={12} />{mode === 'imagery' ? 'Aerial imagery' : `${buildingCount.toLocaleString()} visible buildings`}</span>{layers.landcover && canopy != null && <span>{canopy.toFixed(0)}% study-area tree cover</span>}</div>
         <p className="text-[9px] mt-2 text-[#959b87]">Dashed outline: verified analysis area. Forecast and WorldCover apply there. Roof colors and textures are illustrative.</p>
       </div>

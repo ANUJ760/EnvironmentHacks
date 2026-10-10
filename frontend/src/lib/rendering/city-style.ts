@@ -32,6 +32,7 @@ export function createCityStyle(zurich: boolean): StyleSpecification {
       analysis: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       selection: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       interventions: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
+      removal: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       trees: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, maxzoom: 16, cluster: true, clusterMaxZoom: 14, clusterRadius: 30 },
     },
     layers: [
@@ -56,6 +57,8 @@ export function createCityStyle(zurich: boolean): StyleSpecification {
       { id: 'tree-shadows', type: 'circle', source: 'trees', minzoom: 15, filter: ['!', ['has', 'point_count']], paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 15, 1.5, 18, 6], 'circle-color': '#547759', 'circle-opacity': 0.2, 'circle-translate': [2, 3] } },
       { id: 'tree-canopies', type: 'circle', source: 'trees', minzoom: 15, filter: ['!', ['has', 'point_count']], paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 15, 1.3, 18, 5], 'circle-color': '#75a76a', 'circle-stroke-color': '#5c9057', 'circle-stroke-width': 0.6, 'circle-opacity': 0.95 } },
       { id: 'tree-light', type: 'circle', source: 'trees', minzoom: 16, filter: ['!', ['has', 'point_count']], paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 16, 0.6, 18, 2.5], 'circle-color': '#b1cd87', 'circle-translate': [-1, -1], 'circle-opacity': 0.65 } },
+      { id: 'removal-ground', type: 'fill', source: 'removal', paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 1 } },
+      { id: 'removal-border', type: 'line', source: 'removal', paint: { 'line-color': '#b17740', 'line-width': 2, 'line-dasharray': [2, 2] } },
       { id: 'analysis-fill', type: 'fill', source: 'analysis', paint: { 'fill-color': '#167858', 'fill-opacity': 0.035 } },
       { id: 'analysis-boundary', type: 'line', source: 'analysis', paint: { 'line-color': '#167858', 'line-width': 2, 'line-dasharray': [3, 3], 'line-opacity': 0.8 } },
       { id: 'intervention-fill', type: 'fill', source: 'interventions', paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 0.5 } },
