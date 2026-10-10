@@ -700,6 +700,315 @@
         "title": "Reclassify",
         "type": "object"
       },
+      "RemovalMetric": {
+        "properties": {
+          "after": {
+            "title": "After",
+            "type": "number"
+          },
+          "before": {
+            "title": "Before",
+            "type": "number"
+          },
+          "caveat": {
+            "title": "Caveat",
+            "type": "string"
+          },
+          "delta": {
+            "title": "Delta",
+            "type": "number"
+          },
+          "evidence": {
+            "title": "Evidence",
+            "type": "string"
+          },
+          "high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "unit",
+          "before",
+          "after",
+          "delta",
+          "evidence",
+          "method",
+          "caveat"
+        ],
+        "title": "RemovalMetric",
+        "type": "object"
+      },
+      "RemovalReport": {
+        "properties": {
+          "affected_geometry": {
+            "additionalProperties": true,
+            "title": "Affected Geometry",
+            "type": "object"
+          },
+          "area_m2": {
+            "title": "Area M2",
+            "type": "number"
+          },
+          "computed_at": {
+            "title": "Computed At",
+            "type": "string"
+          },
+          "findings": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "geometry_source": {
+            "title": "Geometry Source",
+            "type": "string"
+          },
+          "hourly": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Hourly",
+            "type": "array"
+          },
+          "inputs": {
+            "additionalProperties": true,
+            "title": "Inputs",
+            "type": "object"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/RemovalMetric"
+            },
+            "title": "Metrics",
+            "type": "array"
+          },
+          "model_version": {
+            "default": "removal-screen-v1",
+            "title": "Model Version",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "weather": {
+            "additionalProperties": true,
+            "title": "Weather",
+            "type": "object"
+          },
+          "within_analysis_area": {
+            "title": "Within Analysis Area",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "computed_at",
+          "kind",
+          "affected_geometry",
+          "area_m2",
+          "geometry_source",
+          "within_analysis_area",
+          "weather",
+          "inputs",
+          "metrics",
+          "hourly",
+          "findings",
+          "limitations",
+          "sources"
+        ],
+        "title": "RemovalReport",
+        "type": "object"
+      },
+      "RemovalRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "baseline_cover": {
+            "default": "grass",
+            "enum": [
+              "grass",
+              "wood",
+              "impervious"
+            ],
+            "title": "Baseline Cover",
+            "type": "string"
+          },
+          "crown_diameter_m": {
+            "default": 8,
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Crown Diameter M",
+            "type": "number"
+          },
+          "forecast_hours": {
+            "default": 24,
+            "maximum": 72.0,
+            "minimum": 6.0,
+            "title": "Forecast Hours",
+            "type": "integer"
+          },
+          "geometry": {
+            "additionalProperties": true,
+            "title": "Geometry",
+            "type": "object"
+          },
+          "kind": {
+            "enum": [
+              "tree",
+              "park",
+              "building",
+              "road"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "location": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Location",
+            "type": "array"
+          },
+          "rainfall_mm": {
+            "anyOf": [
+              {
+                "maximum": 300.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rainfall Mm"
+          },
+          "replacement": {
+            "default": "grass",
+            "enum": [
+              "unchanged",
+              "grass",
+              "bare",
+              "impervious"
+            ],
+            "title": "Replacement",
+            "type": "string"
+          },
+          "road_length_m": {
+            "default": 50,
+            "maximum": 300.0,
+            "minimum": 5.0,
+            "title": "Road Length M",
+            "type": "number"
+          },
+          "road_width_m": {
+            "default": 6,
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Road Width M",
+            "type": "number"
+          },
+          "roof_usable_fraction": {
+            "default": 0.5,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Roof Usable Fraction",
+            "type": "number"
+          },
+          "shade_fraction": {
+            "default": 0.8,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Shade Fraction",
+            "type": "number"
+          },
+          "soil_group": {
+            "default": "B",
+            "enum": [
+              "A",
+              "B",
+              "C",
+              "D"
+            ],
+            "title": "Soil Group",
+            "type": "string"
+          },
+          "trunk_diameter_cm": {
+            "default": 30,
+            "maximum": 150.0,
+            "minimum": 3.0,
+            "title": "Trunk Diameter Cm",
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "geometry",
+          "location"
+        ],
+        "title": "RemovalRequest",
+        "type": "object"
+      },
       "ResultView": {
         "properties": {
           "created_at": {
@@ -1718,6 +2027,59 @@
         "summary": "Weather",
         "tags": [
           "cities"
+        ]
+      }
+    },
+    "/v1/cities/{identifier}/removal-preview": {
+      "post": {
+        "operationId": "preview_v1_cities__identifier__removal_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identifier",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identifier",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemovalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemovalReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview",
+        "tags": [
+          "removal previews"
         ]
       }
     },

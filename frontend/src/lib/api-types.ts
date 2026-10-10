@@ -157,6 +157,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/cities/{identifier}/removal-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview */
+        post: operations["preview_v1_cities__identifier__removal_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/jobs/{identifier}": {
         parameters: {
             query?: never;
@@ -585,6 +602,149 @@ export interface components {
             };
             /** To Class Code */
             to_class_code: number;
+        };
+        /** RemovalMetric */
+        RemovalMetric: {
+            /** After */
+            after: number;
+            /** Before */
+            before: number;
+            /** Caveat */
+            caveat: string;
+            /** Delta */
+            delta: number;
+            /** Evidence */
+            evidence: string;
+            /** High */
+            high?: number | null;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Low */
+            low?: number | null;
+            /** Method */
+            method: string;
+            /** Unit */
+            unit: string;
+        };
+        /** RemovalReport */
+        RemovalReport: {
+            /** Affected Geometry */
+            affected_geometry: {
+                [key: string]: unknown;
+            };
+            /** Area M2 */
+            area_m2: number;
+            /** Computed At */
+            computed_at: string;
+            /** Findings */
+            findings: {
+                [key: string]: unknown;
+            }[];
+            /** Geometry Source */
+            geometry_source: string;
+            /** Hourly */
+            hourly: {
+                [key: string]: unknown;
+            }[];
+            /** Inputs */
+            inputs: {
+                [key: string]: unknown;
+            };
+            /** Kind */
+            kind: string;
+            /** Limitations */
+            limitations: string[];
+            /** Metrics */
+            metrics: components["schemas"]["RemovalMetric"][];
+            /**
+             * Model Version
+             * @default removal-screen-v1
+             */
+            model_version: string;
+            /** Sources */
+            sources: {
+                [key: string]: unknown;
+            }[];
+            /** Weather */
+            weather: {
+                [key: string]: unknown;
+            };
+            /** Within Analysis Area */
+            within_analysis_area: boolean;
+        };
+        /** RemovalRequest */
+        RemovalRequest: {
+            /**
+             * Baseline Cover
+             * @default grass
+             * @enum {string}
+             */
+            baseline_cover: "grass" | "wood" | "impervious";
+            /**
+             * Crown Diameter M
+             * @default 8
+             */
+            crown_diameter_m: number;
+            /**
+             * Forecast Hours
+             * @default 24
+             */
+            forecast_hours: number;
+            /** Geometry */
+            geometry: {
+                [key: string]: unknown;
+            };
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "tree" | "park" | "building" | "road";
+            /** Location */
+            location: [
+                number,
+                number
+            ];
+            /** Rainfall Mm */
+            rainfall_mm?: number | null;
+            /**
+             * Replacement
+             * @default grass
+             * @enum {string}
+             */
+            replacement: "unchanged" | "grass" | "bare" | "impervious";
+            /**
+             * Road Length M
+             * @default 50
+             */
+            road_length_m: number;
+            /**
+             * Road Width M
+             * @default 6
+             */
+            road_width_m: number;
+            /**
+             * Roof Usable Fraction
+             * @default 0.5
+             */
+            roof_usable_fraction: number;
+            /**
+             * Shade Fraction
+             * @default 0.8
+             */
+            shade_fraction: number;
+            /**
+             * Soil Group
+             * @default B
+             * @enum {string}
+             */
+            soil_group: "A" | "B" | "C" | "D";
+            /**
+             * Trunk Diameter Cm
+             * @default 30
+             */
+            trunk_diameter_cm: number;
         };
         /** ResultView */
         ResultView: {
@@ -1075,6 +1235,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WeatherView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_v1_cities__identifier__removal_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemovalRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemovalReport"];
                 };
             };
             /** @description Validation Error */

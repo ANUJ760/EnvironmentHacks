@@ -13,6 +13,7 @@ const ALLOWED_PATTERNS: Array<{ pattern: RegExp; methods: string[]; authRequired
   { pattern: /^v1\/cities\/[a-zA-Z0-9_-]+\/observations\/weather$/, methods: ['GET'], authRequired: false },
   { pattern: /^v1\/cities\/[a-zA-Z0-9_-]+\/observations\/air$/, methods: ['GET'], authRequired: false },
   { pattern: /^v1\/cities\/[a-zA-Z0-9_-]+\/datasets$/, methods: ['GET'], authRequired: false },
+  { pattern: /^v1\/cities\/[a-zA-Z0-9_-]+\/removal-preview$/, methods: ['POST'], authRequired: false },
   { pattern: /^v1\/models$/, methods: ['GET'], authRequired: false },
   { pattern: /^v1\/scenarios$/, methods: ['POST'], authRequired: true },
   { pattern: /^v1\/scenarios\/[a-zA-Z0-9_-]+$/, methods: ['GET'], authRequired: true },
