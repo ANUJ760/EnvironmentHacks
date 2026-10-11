@@ -1,5 +1,11 @@
 # AWS infrastructure and release
 
+Use the [deployment harness guide](../../docs/DEPLOYMENT.md) for automatic local
+downloads, private S3 seed transfer, separate backend/frontend ECR images and
+one-off migration/ingestion tasks. Both `image_uri` and `frontend_image_uri` must
+be immutable digests before services are enabled. The frontend reaches the API
+through private Cloud Map DNS; it is not the backend container image.
+
 Validated Terraform 1.11.4, AWS provider 5.100.0 (committed provider checksum lock).
 No AWS resources have been created. Account identity, operator-owned domain/Route53
 zone, budget recipient, approved region and release approval are external prerequisites.

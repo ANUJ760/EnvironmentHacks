@@ -19,6 +19,12 @@ resource "aws_security_group" "alb" {
     protocol    = "tcp"
     cidr_blocks = aws_subnet.app[*].cidr_block
   }
+  egress {
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = aws_subnet.app[*].cidr_block
+  }
 }
 resource "aws_security_group" "tasks" {
   for_each = toset(["api", "worker", "ingest", "migrate"])

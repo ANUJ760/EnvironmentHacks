@@ -7,7 +7,7 @@ output "frontend_ecs_service_name" {
 }
 
 output "frontend_task_definition_arn" {
-  value = aws_ecs_task_definition.frontend.arn
+  value = try(aws_ecs_task_definition.frontend[0].arn, null)
 }
 
 output "frontend_https_url" {

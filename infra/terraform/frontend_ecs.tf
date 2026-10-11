@@ -19,18 +19,29 @@ resource "aws_security_group" "frontend" {
 }
 
 resource "aws_ecs_task_definition" "frontend" {
+  count                    = var.enable_tasks || var.enable_services ? 1 : 0
   family                   = "${local.name}-frontend"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = 512
   memory                   = 1024
   execution_role_arn       = aws_iam_role.execution.arn
-  task_role_arn            = aws_iam_role.task["api"].arn
+  task_role_arn            = aws_iam_role.frontend.arn
+  runtime_platform {
+    cpu_architecture        = "X86_64"
+    operating_system_family = "LINUX"
+  }
+  lifecycle {
+    precondition {
+      condition     = var.frontend_image_uri != ""
+      error_message = "Supply a separate immutable frontend_image_uri before enabling tasks or services."
+    }
+  }
 
   container_definitions = jsonencode([
     {
       name      = "frontend"
-      image     = var.image_uri != "" ? var.image_uri : "${aws_ecr_repository.frontend.repository_url}:latest"
+      image     = var.frontend_image_uri
       essential = true
       user      = "1001:1001"
 
@@ -45,11 +56,9 @@ resource "aws_ecs_task_definition" "frontend" {
       environment = [
         { name = "APP_ENV", value = "production" },
         { name = "APP_BASE_URL", value = "https://${var.domain_name}" },
-        { name = "NEXTAUTH_URL", value = "https://${var.domain_name}" },
-        { name = "FRONTEND_AUTH_MODE", value = "cognito" },
-        { name = "ECOTWIN_API_INTERNAL_URL", value = "http://${aws_lb.api.dns_name}:8000" },
-        { name = "COGNITO_ISSUER", value = "https://cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.users.id}" },
-        { name = "COGNITO_CLIENT_ID", value = aws_cognito_user_pool_client.web.id },
+        { name = "ECOTWIN_API_INTERNAL_URL", value = "http://api.${aws_service_discovery_private_dns_namespace.internal.name}:8000" },
+        { name = "MAP_CACHE_DIR", value = "/tmp/ecotwin-map-cache" },
+        { name = "OLLAMA_BASE_URL", value = "http://localhost:11434" },
         { name = "NEXT_PUBLIC_APP_LABEL", value = "EcoTwin" }
       ]
 
@@ -69,7 +78,7 @@ resource "aws_ecs_service" "frontend" {
   count           = var.enable_services ? 1 : 0
   name            = "${local.name}-frontend"
   cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.frontend.arn
+  task_definition = aws_ecs_task_definition.frontend[0].arn
   desired_count   = var.environment == "production" ? 2 : 1
   launch_type     = "FARGATE"
 
@@ -88,4 +97,5 @@ resource "aws_ecs_service" "frontend" {
     enable   = true
     rollback = true
   }
+  depends_on = [aws_lb_listener_rule.frontend, aws_ecs_service.services]
 }

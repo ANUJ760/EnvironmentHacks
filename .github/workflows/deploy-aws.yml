@@ -5,6 +5,9 @@ on:
       image_digest:
         description: Previously CI-verified immutable ECR image URI
         required: true
+      frontend_image_digest:
+        description: Previously CI-verified immutable frontend ECR image URI
+        required: true
 permissions:
   id-token: write
   contents: read
@@ -45,7 +48,14 @@ jobs:
           WORKER_TASK: ${{ vars.WORKER_TASK }}
           API_URL: ${{ vars.API_URL }}
           IMAGE_URI: ${{ inputs.image_digest }}
+          FRONTEND_IMAGE_URI: ${{ inputs.frontend_image_digest }}
+          FRONTEND_SERVICE: ${{ vars.FRONTEND_SERVICE }}
+          FRONTEND_TASK: ${{ vars.FRONTEND_TASK }}
+          FRONTEND_URL: ${{ vars.FRONTEND_URL }}
         run: |
+          set -eu
+          python -c 'import os,re; assert re.fullmatch(r"[0-9]+\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com/[a-z0-9/_-]+@sha256:[a-f0-9]{64}",os.environ["FRONTEND_IMAGE_URI"])'
+          test "$(aws ecs describe-task-definition --task-definition "$FRONTEND_TASK" --query 'taskDefinition.containerDefinitions[0].image' --output text)" = "$FRONTEND_IMAGE_URI"
           for TASK in "$API_TASK" "$WORKER_TASK"; do
             test "$(aws ecs describe-task-definition --task-definition "$TASK" --query 'taskDefinition.containerDefinitions[0].image' --output text)" = "$IMAGE_URI"
           done

@@ -54,3 +54,6 @@ output "private_subnet_ids" {
 output "migration_security_group_id" {
   value = aws_security_group.tasks["migrate"].id
 }
+output "ingestion_security_group_id" {
+  value = aws_security_group.tasks["ingest"].id
+}

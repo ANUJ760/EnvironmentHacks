@@ -34,3 +34,17 @@ resource "aws_lb_listener_rule" "frontend" {
     }
   }
 }
+
+resource "aws_lb_listener_rule" "backend_paths" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 5
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
+  }
+  condition {
+    path_pattern {
+      values = ["/v1/*", "/readyz", "/livez"]
+    }
+  }
+}

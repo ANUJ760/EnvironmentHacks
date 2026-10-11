@@ -54,6 +54,16 @@ variable "image_uri" {
     error_message = "Service image must use an immutable ECR digest."
   }
 }
+
+variable "frontend_image_uri" {
+  type        = string
+  default     = ""
+  description = "Separate standalone Next.js ECR image, not the backend image."
+  validation {
+    condition     = var.frontend_image_uri == "" || can(regex("@sha256:[a-f0-9]{64}$", var.frontend_image_uri))
+    error_message = "Frontend image must use an immutable ECR digest."
+  }
+}
 variable "database_secret_arns" {
   type = map(string)
   default = {

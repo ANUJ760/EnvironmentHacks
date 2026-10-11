@@ -122,6 +122,12 @@ resource "aws_ecs_service" "services" {
       container_port   = 8000
     }
   }
+  dynamic "service_registries" {
+    for_each = each.key == "api" ? [1] : []
+    content {
+      registry_arn = aws_service_discovery_service.api.arn
+    }
+  }
   depends_on = [aws_lb_listener.https]
 }
 resource "aws_appautoscaling_target" "services" {

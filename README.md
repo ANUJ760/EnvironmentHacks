@@ -10,11 +10,13 @@ city snapshots, dataset import CLI, authenticated scenarios, recoverable worker 
 local/S3 object storage, screening runoff/PV models and AWS Terraform infrastructure.
 
 ```bash
-make setup
-make up
+python3 scripts/local.py up
 ```
 
-Real datasets are **not bundled**. Download slots and exact import steps:
+Docker Compose v2 and Python 3.10+ are the only host runtime prerequisites.
+The launcher downloads real inputs automatically; datasets are **not bundled**.
+See [local/AWS deployment and storage](docs/DEPLOYMENT.md) and the
+[fresh-clone agent prompt](docs/LOCAL_AGENT_PROMPT.md). Download slots and exact import steps:
 [Dataset onboarding](docs/DATASETS.md). Setup, models and release limitations:
 [Operations](docs/OPERATIONS.md). Cloud deployment: [Terraform runbook](infra/terraform/README.md).
 Actual validation evidence: [Implementation report](docs/implementation-report.json).

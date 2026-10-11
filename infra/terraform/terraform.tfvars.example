@@ -8,6 +8,7 @@ db_instance_class = "db.t4g.small"
 budget_email = ""
 enable_services = false
 image_uri = ""
+frontend_image_uri = ""
 database_secret_arns = {}
 ingest_city_slug = ""
 enable_tasks = false
