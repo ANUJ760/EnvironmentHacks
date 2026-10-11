@@ -10,7 +10,7 @@ import { useLayerStore } from '@/stores/layerStore';
 import { useScenarioStore } from '@/stores/scenarioStore';
 import { useRemovalStore } from '@/stores/removalStore';
 import { usePlanningStore } from '@/stores/planningStore';
-import { useAir, useLandcover, useWeather } from '@/hooks/useCityData';
+import { useAir, useWeather } from '@/hooks/useCityData';
 import { computeBBoxFromGeometry, isPointInPolygon } from '@/lib/geo';
 import { WORLDCOVER_CLASSES } from '@/lib/scenarios';
 import { fetchGateway } from '@/lib/api/browser-client';
@@ -68,7 +68,6 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
     staleTime: 300000, refetchInterval: 300000, retry: 1,
   });
   const weather = environment?.weather.series.length ? environment.weather : pinnedWeather;
-  const { data: landcover } = useLandcover(cityId);
   const { data: air } = useAir(cityId);
   const config = useMemo(() => cityVisualConfig(citySlug, boundary), [citySlug, boundary]);
   const latest = useRef({ layers, mode });
@@ -289,7 +288,6 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
     setMode(next);
   }
 
-  const canopy = (landcover?.class_percentages as Record<string, number> | undefined)?.['10'];
   return (
     <div className="city-map relative overflow-hidden bg-black" data-city-map-ready={!!readyMap} data-view-mode={mode}>
       <div ref={hostRef} style={{ position: 'absolute', inset: 0 }} />
@@ -318,23 +316,20 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
         {!drawing ? <><button className="flex items-center gap-2 rounded-lg bg-primary text-white px-3 py-2 font-semibold" onClick={() => { setSelectedFeature(null); setDrawing(true); }}><Scan size={17} />Draw area</button><button className="city-nav-button" aria-label="Clear selection" onClick={() => setSelectedFeature(null)}><X size={17} /></button></> : <><span className="px-2 text-muted">{points.length} points</span><button disabled={points.length < 3} className="flex items-center gap-1 bg-primary text-white rounded-lg px-3 py-2 disabled:opacity-40" onClick={finishArea}><Check size={16} />Finish area</button><button className="city-nav-button" aria-label="Cancel drawing" onClick={resetDrawing}><X size={17} /></button></>}
       </div>
 
-      <div className="absolute left-5 top-[205px] z-10 city-map-panel rounded-2xl p-1.5 flex flex-col gap-1" role="toolbar" aria-label="City map navigation">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 city-map-panel rounded-2xl p-1.5 flex gap-1" role="toolbar" aria-label="City map navigation">
         <button className="city-nav-button" aria-label="Zoom in" title="Zoom in" onClick={() => mapRef.current?.zoomIn({ duration: 250 })}><Plus size={17} /></button>
         <button className="city-nav-button" aria-label="Zoom out" title="Zoom out" onClick={() => mapRef.current?.zoomOut({ duration: 250 })}><Minus size={17} /></button>
-        <span className="h-px bg-[#e1e5d5] mx-2" />
         <button className="city-nav-button" aria-label="View entire city" title="View entire city" onClick={() => mapRef.current?.fitBounds([[config.bounds[0], config.bounds[1]], [config.bounds[2], config.bounds[3]]], { padding: 70, pitch: 0, bearing: 0, duration: 800 })}><Globe2 size={17} /></button>
         <button className="city-nav-button" aria-label="View analysis area" title="View analysis area" onClick={flyToStudy}><Focus size={17} /></button>
         <button className="city-nav-button" aria-label="Toggle north-up orientation" title="Toggle north-up orientation" onClick={() => { setNorthUp(!northUp); mapRef.current?.easeTo({ bearing: northUp ? -24 : 0, duration: 300 }); }}><Layers3 size={17} /></button>
         <button className="city-nav-button" aria-label="Reset city view" title="Return downtown" onClick={() => { setNorthUp(false); mapRef.current?.flyTo({ center: config.center, zoom: 15.5, bearing: -24, pitch: 0, duration: 600 }); }}><RotateCcw size={16} /></button>
       </div>
 
-      <div className="absolute bottom-6 left-5 z-10 city-map-panel rounded-2xl px-4 py-3 text-[11px] max-w-[330px]">
-        <div className="flex items-center gap-2 text-primary font-semibold"><MapPin size={15} /> {isScenario ? 'Scenario workspace' : 'Click anywhere. Compare the change.'}</div>
-        <p className="text-xs text-muted mt-1">{drawing ? 'Click 3+ boundary points, then Finish area.' : 'Features or custom areas · same-weather comparison'}</p>
-        <div className="flex gap-4 mt-2.5 pt-2.5 border-t border-[#e5e7d8] text-[#6f7e61]"><span className="flex items-center gap-1.5"><Building2 size={12} />{mode === 'imagery' ? 'Aerial imagery' : `${buildingCount.toLocaleString()} visible buildings`}</span>{layers.landcover && canopy != null && <span>{canopy.toFixed(0)}% study-area tree cover</span>}</div>
-        <p className="text-xs mt-2 text-muted">Dashed boundary = verified data coverage</p>
+      <div className="absolute top-[205px] left-5 z-10 city-map-panel rounded-xl px-3 py-2 text-xs max-w-[220px] pointer-events-none">
+        <span className="flex items-center gap-1.5"><Building2 size={12} />{mode === 'imagery' ? 'Aerial imagery' : `${buildingCount.toLocaleString()} visible buildings`}</span>
+        <p className="text-primary mt-1">Dashed line: study boundary</p>
       </div>
-      {zoom < 13 && mode === 'illustrated' && <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 city-map-panel px-3 py-2 rounded-xl text-[11px] text-[#5d7150]">Zoom in to explore buildings and street details</div>}
+      {zoom < 13 && mode === 'illustrated' && <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 city-map-panel px-3 py-2 rounded-xl text-xs text-primary">Zoom in to explore buildings and street details</div>}
       {(loading || error || (imageryError && mode === 'imagery')) && <div role="status" className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 city-map-panel rounded-2xl px-5 py-4 max-w-sm text-sm text-[#5a6f51]">{error || (imageryError && mode === 'imagery' ? 'Aerial imagery is temporarily unavailable. Illustrated 2D remains available.' : <span className="flex items-center gap-3"><span className="w-4 h-4 rounded-full border-2 border-[#a5b996] border-t-[#538169] animate-spin" /> Bringing the city into view…</span>)}</div>}
     </div>
   );

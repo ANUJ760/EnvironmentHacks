@@ -1,20 +1,22 @@
 'use client';
 
 import React from 'react';
-import { Layers, Eye, EyeOff, TreePine, Building2, Droplets, Car, Trash2, Wind, CloudSun } from 'lucide-react';
+import { Layers, Eye, EyeOff, TreePine, Building2, Droplets, Car, Wind, CloudSun } from 'lucide-react';
 import { useLayerStore } from '@/stores/layerStore';
 import { useScenarioStore } from '@/stores/scenarioStore';
 import { usePlanningStore } from '@/stores/planningStore';
 import { selectionKey, usePlanningResultStore } from '@/stores/planningResultStore';
 import type { PlanningInventory } from '@/lib/planning';
+import { useAir } from '@/hooks/useCityData';
 
 interface LeftRailProps {
   cityId?: string;
   cityName?: string;
 }
 
-export function LeftRail({ cityName }: LeftRailProps) {
-  const { buildings, roads, parks, water, waste, air, weather, landcover, toggleLayer } = useLayerStore();
+export function LeftRail({ cityId, cityName }: LeftRailProps) {
+  const { buildings, roads, parks, water, air, weather, toggleLayer } = useLayerStore();
+  const { data: airReadings } = useAir(cityId);
   const feature = useScenarioStore(state => state.selectedFeature);
   const highlighted = usePlanningStore(state => state.highlighted);
   const result = usePlanningResultStore();
@@ -25,10 +27,8 @@ export function LeftRail({ cityName }: LeftRailProps) {
     { id: 'roads', label: 'Road Network', icon: Car, active: roads },
     { id: 'parks', label: 'Parks & Canopy', icon: TreePine, active: parks },
     { id: 'water', label: 'Water Bodies', icon: Droplets, active: water },
-    { id: 'landcover', label: 'Land Cover (WorldCover)', icon: Layers, active: landcover },
     { id: 'air', label: 'Air Stations (OpenAQ)', icon: Wind, active: air },
     { id: 'weather', label: 'Weather Forecast', icon: CloudSun, active: weather },
-    { id: 'waste', label: 'Waste Facilities', icon: Trash2, active: waste },
   ] as const;
 
   return (
@@ -58,7 +58,7 @@ export function LeftRail({ cityName }: LeftRailProps) {
         </div>
 
         <div className="space-y-1.5">
-          {layerItems.map((layer) => {
+          {layerItems.filter(layer => layer.id !== 'air' || airReadings?.readings?.some(reading => !!reading.location)).map((layer) => {
             const Icon = layer.icon;
             return (
               <button
