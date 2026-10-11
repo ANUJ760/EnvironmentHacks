@@ -20,8 +20,8 @@ ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
     HOSTNAME=0.0.0.0
-RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources && \
-    apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/* && \
+RUN apt-get -o APT::Update::Error-Mode=any update && apt-get upgrade -y && \
+    rm -rf /var/lib/apt/lists/* && \
     rm -rf /usr/local/lib/node_modules/npm /opt/yarn-v1.22.22 && \
     rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/yarn /usr/local/bin/yarnpkg
 RUN groupadd --system --gid 1001 ecotwin && \
