@@ -193,6 +193,14 @@ def intersect_inventory(session, city, snapshot, selected, request):
     if len(rows) > 5000:
         raise TwinError("INVALID_GEOMETRY", "Too many mapped objects; select a smaller area", 422)
     counts, building_shapes, floor, assumed_levels = {}, [], 0, 0
+    from ecotwin.ingestion.municipal_trees import deduplicate_trees
+
+    tree_rows = [
+        {"geom": to_shape(row.geom), "tags": row.tags}
+        for row in rows
+        if row.category == "mapped_tree"
+    ]
+    trees, suppressed = deduplicate_trees(tree_rows, city.analysis_srid)
     for row in rows:
         piece = project(to_shape(row.geom), city.analysis_srid).intersection(metric)
         if piece.is_empty or ("Polygon" in to_shape(row.geom).geom_type and piece.area < 0.01):
@@ -212,6 +220,7 @@ def intersect_inventory(session, city, snapshot, selected, request):
     from shapely.ops import unary_union
 
     buildings = unary_union(building_shapes).area if building_shapes else 0
+    counts["mapped_tree"] = len(trees)
     # De-duplicate overlapping mapped outlines for the gross-floor proxy.
     if building_shapes and sum(piece.area for piece in building_shapes) > buildings:
         floor *= buildings / sum(piece.area for piece in building_shapes)
@@ -219,7 +228,9 @@ def intersect_inventory(session, city, snapshot, selected, request):
         "counts": counts,
         "buildings_count": counts.get("building", 0),
         "roads_count": counts.get("road", 0),
-        "mapped_trees_count": counts.get("mapped_tree", 0),
+        "mapped_trees_count": len(trees),
+        "tree_cross_source_matches": suppressed,
+        "tree_matching_policy": "Municipal records preferred; OSM points within 2 m suppressed (heuristic)",
         "building_area_m2": buildings,
         "floor_area_m2": floor,
         "buildings_with_assumed_levels": assumed_levels,
@@ -298,6 +309,11 @@ def planning_preview(
         ],
     }
     sources = SOURCES + [
+        {
+            "id": "municipal-trees",
+            "title": "Zürich tree register · CC0 · incomplete; crown sizes estimated",
+            "url": "https://data.stadt-zuerich.ch/dataset/geo_baumkataster",
+        },
         {
             "id": "cams",
             "title": "CAMS / Open-Meteo regional air forecast",

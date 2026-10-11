@@ -225,6 +225,49 @@ def osm(
         output({"revision_id": revision.id, "features": len(rows), "rejected": rejected})
 
 
+@ingest.command("municipal-trees")
+@audited_import
+def municipal_trees(city: str = typer.Option(...), file: Path = typer.Option(...)):
+    from ecotwin.ingestion.municipal_trees import URL, parse_trees
+
+    with session_factory()() as session:
+        area = city_by_slug(session, city)
+        if not area.slug.startswith("zurich"):
+            raise TwinError("INVALID_CITY", "This provider covers Zürich only")
+        boundary = to_shape(area.boundary)
+        rows, rejected = parse_trees(json.loads(file.read_text()), boundary)
+        if not rows:
+            raise TwinError("INSUFFICIENT_INPUT_DATA", "No valid municipal trees within study")
+        revision, created = register_object(
+            session,
+            area,
+            "municipal_trees",
+            file,
+            boundary,
+            {
+                "crs": "EPSG:4326",
+                "rejected": rejected,
+                "inventory_complete": False,
+                "crown_quality": "estimated; 8 m provider fallback may apply",
+            },
+            URL,
+        )
+        if created:
+            for row in rows:
+                geom = row.pop("geom")
+                session.add(
+                    GeoFeature(
+                        city_id=area.id,
+                        revision_id=revision.id,
+                        geom=from_shape(geom, srid=4326),
+                        **row,
+                    )
+                )
+            successful_run(session, revision, len(rows), rejected)
+        session.commit()
+        output({"revision_id": revision.id, "trees": len(rows), "rejected": rejected})
+
+
 @ingest.command("worldcover")
 @audited_import
 def worldcover(

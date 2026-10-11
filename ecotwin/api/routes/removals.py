@@ -165,7 +165,12 @@ def resolve_geometry(request, city, snapshot, session):
     chosen = to_shape(authoritative.geom) if authoritative else supplied
     metric = project(chosen, city.analysis_srid)
     source = (
-        "Published OSM revision " + str(authoritative.revision_id)
+        (
+            "Published municipal tree revision "
+            if authoritative.tags.get("register_id")
+            else "Published OSM revision "
+        )
+        + str(authoritative.revision_id)
         if authoritative
         else "OSM map-tile geometry (outside published coverage or no matching feature)"
     )
