@@ -7,8 +7,9 @@ be immutable digests before services are enabled. The frontend reaches the API
 through private Cloud Map DNS; it is not the backend container image.
 
 Validated Terraform 1.11.4, AWS provider 5.100.0 (committed provider checksum lock).
-No AWS resources have been created. Account identity, operator-owned domain/Route53
-zone, budget recipient, approved region and release approval are external prerequisites.
+The first staging deployment is recorded in [the AWS deployment record](../../docs/AWS_DEPLOYMENT_RECORD.md).
+A custom domain/Route53 zone or the guide's CloudFront hostname option is required.
+Account identity, budget recipient, region and release settings are operator inputs.
 Two NAT gateways, ALB, private RDS and ECS incur ongoing cost. Staging RDS is single
 AZ; production uses Multi-AZ, deletion protection and seven-day encrypted backups.
 

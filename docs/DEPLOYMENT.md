@@ -103,7 +103,7 @@ variables or command output.
 
 No cloud resources are created by local setup. AWS deployment is an explicit,
 paid operator action requiring AWS CLI/SSO credentials, Terraform 1.11+, Docker,
-an owned Route53 domain, and a private encrypted/versioned Terraform state bucket.
+a custom domain or the CloudFront option above, and a private encrypted/versioned Terraform state bucket.
 Read [the infrastructure runbook](../infra/terraform/README.md), especially DB role
 bootstrap and budgets, before applying anything.
 
@@ -176,5 +176,8 @@ Rollback to compatible image/task digests; do not automatically downgrade schema
 Local tests and Terraform validation are not evidence of a live AWS deployment.
 
 ## Agent handoff
+
+The deployed staging URL, exact process and verification evidence are recorded in
+[the AWS deployment record](AWS_DEPLOYMENT_RECORD.md).
 
 Use [this copy-and-paste prompt](LOCAL_AGENT_PROMPT.md) for a fresh checkout.
