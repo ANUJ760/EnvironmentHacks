@@ -313,49 +313,6 @@ it does not validate that the inputs represent reality or establish who created
 the report. See [operations](docs/OPERATIONS.md) for the local test setup and
 release gates.
 
-## Deploy to AWS
-
-The AWS path is explicit and operator-controlled; running locally does not create
-cloud resources. The deployment harness uses separate backend and frontend images,
-ECS/Fargate, RDS PostgreSQL with PostGIS, a private S3 data bucket, SQS for the
-worker, and supporting AWS networking, secrets, and monitoring. Terraform stages
-and dry-run-by-default helper scripts are documented in these guides:
-
-- [AWS/local deployment and persistent data placement](docs/DEPLOYMENT.md)
-- [Terraform infrastructure and release runbook](infra/terraform/README.md)
-- [Dataset source and import guide](docs/DATASETS.md)
-
-In AWS, S3 stores immutable, verified raw/processed datasets, manifests, and
-results; RDS/PostGIS stores spatial features and revision metadata. ECS task disk
-is temporary and must not be treated as the dataset store. Use private encrypted
-S3, IAM task roles, and no long-lived credentials in images. Ollama is not
-provisioned by the Terraform deployment; keep explanations optional or operate a
-separately secured service. Review AWS costs, provider licenses, security scans,
-and the runbook before applying infrastructure.
-
-## Repository map
-
-```text
-ecotwin/                 Python API, scientific models, ingestion, worker
-frontend/                Next.js planner and map UI
-config/datasets/          Registered dataset download recipes
-data/                    Local downloads and generated data (ignored by Git)
-migrations/              Alembic/PostGIS schema migrations
-model_parameters/        Versioned model coefficients and defaults
-scripts/local.py         Fresh-clone local setup and service launcher
-scripts/bootstrap_data.py Dataset download, validation, and import harness
-infra/terraform/         AWS infrastructure
-docs/                    Architecture, datasets, deployment, and operations guides
-tests/                   Backend tests; frontend tests are under frontend/tests/
-```
-
-## Project name and internal identifiers
-
-**EcoTwin** is the project name. Internal identifiers such as the
-Python package and command (`ecotwin`), database name, Docker image names, and
-`ECOTWIN_*` configuration variables are retained for compatibility with the
-existing code and deployment setup.
-
 ## License
 
 See [`LICENSE`](LICENSE). Dataset licensing and attribution are separate; consult
