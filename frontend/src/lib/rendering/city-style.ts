@@ -23,11 +23,11 @@ export function createCityStyle(zurich: boolean): StyleSpecification {
   return {
     version: 8,
     name: 'EcoTwin illustrated city',
-    glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
+    glyphs: '/api/map/tiles/fonts/{fontstack}/{range}.pbf',
     sources: {
-      city: { type: 'vector', url: 'https://tiles.openfreemap.org/planet', attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> · <a href="https://openfreemap.org">OpenFreeMap</a>' },
+      city: { type: 'vector', url: '/api/map/tiles/manifest', attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> · <a href="https://openfreemap.org">OpenFreeMap</a>' },
       ...(zurich ? {
-        imagery: { type: 'raster' as const, tiles: ['https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg'], tileSize: 256, maxzoom: 19, bounds: [5.9, 45.8, 10.6, 47.9], attribution: 'Aerial imagery © <a href="https://www.swisstopo.admin.ch/en/swissimage">swisstopo</a>' },
+        imagery: { type: 'raster' as const, tiles: ['/api/map/tiles/aerial/{z}/{x}/{y}.jpeg'], tileSize: 256, maxzoom: 19, bounds: [5.9, 45.8, 10.6, 47.9], attribution: 'Aerial imagery © <a href="https://www.swisstopo.admin.ch/en/swissimage">swisstopo</a>' },
       } : {}),
       analysis: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       selection: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
