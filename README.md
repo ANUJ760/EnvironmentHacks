@@ -1,5 +1,10 @@
 ## Backend service (implemented)
 
+The interactive city-planning simulator now supports custom-area clearing/filling,
+before/after energy and waste balances, runoff, vegetation, regional air baselines
+and reproducible exports. [Small architecture guide](docs/ARCHITECTURE.md) describes
+the implemented scope, explicit scientific limits and Docker/AWS handoff.
+
 The preserved EcoTwin scientific library now has a FastAPI/PostGIS backend, immutable
 city snapshots, dataset import CLI, authenticated scenarios, recoverable worker jobs,
 local/S3 object storage, screening runoff/PV models and AWS Terraform infrastructure.

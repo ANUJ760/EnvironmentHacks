@@ -25,7 +25,7 @@ export function Navbar() {
             ET
           </div>
           <span className="tracking-tight">
-            Eco<span className="text-primary">Twin</span>
+            Eco<span className="text-sky-400">Twin</span>
           </span>
         </Link>
 

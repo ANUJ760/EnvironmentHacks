@@ -60,6 +60,7 @@ export function LeftRail({ cityId, cityName, isSimulatePage = false }: LeftRailP
               <button
                 key={layer.id}
                 type="button"
+                aria-label={layer.label}
                 onClick={() => toggleLayer(layer.id)}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors border ${
                   layer.active
@@ -70,7 +71,7 @@ export function LeftRail({ cityId, cityName, isSimulatePage = false }: LeftRailP
               >
                 <div className="flex items-center gap-2.5 truncate">
                   <Icon className={`w-4 h-4 shrink-0 ${layer.active ? 'text-primary' : 'text-slate-400'}`} />
-                  <span className="truncate">{layer.label}</span>
+                  <span className="truncate">{layer.label.split(' (')[0]?.replace('Road Network', 'Roads').replace('Parks & Canopy', 'Parks & trees').replace('Weather Forecast', 'Weather').replace('Waste Facilities', 'Waste facilities')}</span>
                 </div>
                 {layer.active ? (
                   <Eye className="w-3.5 h-3.5 text-primary shrink-0" />

@@ -20,7 +20,13 @@ from ecotwin.db.session import session_dependency
 from ecotwin.errors import TwinError
 from ecotwin.ingestion.air_forecast import FIELDS, URL, fetch_air_forecast, parse_air_forecast
 from ecotwin.ingestion.downloader import ProviderClient
-from ecotwin.models.planning import CLASS_NAMES, PlanningReport, PlanningRequest, calculate_planning
+from ecotwin.models.planning import (
+    CLASS_NAMES,
+    PlanningReport,
+    PlanningRequest,
+    calculate_planning,
+    planning_digest,
+)
 from ecotwin.models.removal import SOURCES, RemovalRequest
 from ecotwin.simulation.command import canonical_digest
 from ecotwin.spatial.geometry import geometry, project
@@ -230,8 +236,20 @@ def planning_preview(
     snapshot = active_snapshot(session, identifier)
     selected, area, source, inside = selected_area(request, city, snapshot, session)
     inventory, cover = intersect_inventory(session, city, snapshot, selected, request)
+    if request.selection_type == "building" and inventory["building_area_m2"] < 0.01:
+        # A clicked vector-tile footprint is usable geometry, but its floor count
+        # and consumption remain explicit assumptions outside pinned OSM coverage.
+        inventory.update(
+            buildings_count=1,
+            building_area_m2=area,
+            floor_area_m2=area * request.building_levels,
+            buildings_with_assumed_levels=1,
+            footprint_source="supplied_map_outline",
+        )
     coverage = min(1, sum(cover.values()) / area)
     weather, weather_samples = live_weather(city, session, snapshot, request.forecast_hours)
+    if weather["stale"]:
+        weather_samples = []
     air, air_samples = regional_air(city, snapshot, session, request.forecast_hours)
     metrics, findings, hourly, limitations = calculate_planning(
         request, inventory, cover, area, weather_samples, air_samples, coverage
@@ -253,6 +271,7 @@ def planning_preview(
     )
     inputs = request.model_dump(mode="json")
     provenance = {
+        "digest_algorithm": "sha256-json-numeric-v1",
         "snapshot_input_sha256": snapshot.composite_input_sha256,
         "analysis_srid": city.analysis_srid,
         "datasets": [
@@ -324,11 +343,11 @@ def planning_preview(
         "hourly": hourly,
         "inputs": inputs,
         "provenance": provenance,
-        "input_sha256": canonical_digest(
+        "input_sha256": planning_digest(
             {"inputs": inputs, "inventory": inventory, "cover": cover, "provenance": provenance}
         ),
     }
-    report["result_sha256"] = canonical_digest(
+    report["result_sha256"] = planning_digest(
         {**report, "metrics": [value.model_dump() for value in metrics]}
     )
     return report

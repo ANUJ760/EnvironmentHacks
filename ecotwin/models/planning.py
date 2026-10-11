@@ -73,6 +73,29 @@ class PlanningReport(BaseModel):
 # NRCS woods in good hydrologic condition; good lawn and bare ground use
 # the existing, referenced NRCS table. Unknown cover is never assumed to be zero.
 WOODS_CN = (30, 55, 70, 77)
+
+
+def planning_digest(value):
+    """Numeric canonical JSON survives browser exports of 1.0 as 1.
+
+    Dataset byte checksums and existing scenario hashes remain unchanged.
+    """
+    from ecotwin.simulation.command import canonical_digest
+
+    def normalize(item):
+        if isinstance(item, float):
+            if not math.isfinite(item):
+                raise ValueError("Finite numbers required")
+            return int(item) if item.is_integer() else item
+        if isinstance(item, dict):
+            return {str(key): normalize(child) for key, child in item.items()}
+        if isinstance(item, (list, tuple)):
+            return [normalize(child) for child in item]
+        return item
+
+    return canonical_digest(normalize(value))
+
+
 CLASS_NAMES = {
     10: "Trees / forest",
     20: "Shrubland",
@@ -103,6 +126,22 @@ def cover_cn(code, soil):
 def calculate_planning(request, inventory, cover, area, weather_samples, air_samples, coverage):
     metrics, findings, hourly, limitations = [], [], [], []
     replacement = "grass" if request.action == "green" else request.replacement
+    if request.selection_type == "park":
+        findings.append(
+            {
+                "id": "habitat",
+                "text": "Changing this park may alter habitat, access and vegetation benefits. A mapped park outline does not reveal species, tree health or a numerical air-temperature change.",
+                "source": "epa",
+            }
+        )
+    if request.selection_type == "tree":
+        findings.append(
+            {
+                "id": "tree",
+                "text": "Removing this tree loses shade and leaf interception. The deposition proxy is not an air-concentration prediction; unchanged ground runoff does not imply zero overall hydrological impact.",
+                "source": "epa",
+            }
+        )
     vegetation = sum(
         value for code, value in cover.items() if code in {10, 20, 30, 40, 90, 95, 100}
     )
@@ -183,7 +222,12 @@ def calculate_planning(request, inventory, cover, area, weather_samples, air_sam
     ]
     # Water surfaces are never represented as soil. Filling them needs a routed
     # hydraulic model; report material volume, not a fabricated flood change.
-    if coverage >= 0.98 and not unsupported and rain is not None:
+    if (
+        coverage >= 0.98
+        and not unsupported
+        and request.selection_type != "water"
+        and rain is not None
+    ):
 
         def runoff(soil):
             before = sum(

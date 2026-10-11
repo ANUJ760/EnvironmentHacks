@@ -45,8 +45,11 @@ Production-oriented user-facing web application and scenario simulation lab for 
 
 ## Interactive removal impacts
 
-Click a tree, building, park or road to open **Impact**. Adjust assumptions and compare
-before/after without changing the source city. Live Open-Meteo forecasts drive
-research-backed screening estimates. An existing local Ollama Gemma/Qwen service
-can optionally organize verified findings. Setup, sources and important accuracy
-limits: [Removal previews](../docs/REMOVAL_PREVIEWS.md).
+Click a feature or any ground location, or use **Draw area** for a custom polygon.
+The **Impact** panel compares clearing, filling or grass conversion under the same
+conditions: runoff, energy, operational waste, demolition materials, vegetation and
+regional air context. Editable assumptions and evidence limits are separate from
+the main cards. Export a JSON report for offline replay. Optional local Ollama
+organizes verified findings only.
+
+[Small architecture guide and Docker/AWS handoff](../docs/ARCHITECTURE.md).

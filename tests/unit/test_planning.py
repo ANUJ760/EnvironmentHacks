@@ -11,7 +11,9 @@ from shapely.geometry import box
 from ecotwin.api.routes import planning
 from ecotwin.errors import TwinError
 from ecotwin.ingestion.air_forecast import FIELDS, parse_air_forecast
-from ecotwin.models.planning import PlanningRequest, calculate_planning
+from ecotwin.models.planning import PlanningReport, PlanningRequest, calculate_planning
+from ecotwin.models.planning import planning_digest as canonical_digest
+from scripts.replay_planning_report import replay
 
 
 def evaluate(**kwargs):
@@ -82,6 +84,22 @@ def test_missing_coverage_and_weather_do_not_become_zero_predictions():
     for value in [float("nan"), -1, 11]:
         with pytest.raises(ValidationError):
             PlanningRequest(geometry={}, waste_kg_person_day=value)
+
+
+def test_mapped_water_overrides_coarse_dry_cover_for_fill_and_disables_soil_runoff():
+    request = PlanningRequest(
+        geometry={},
+        selection_type="water",
+        action="fill",
+        water_depth_m=2,
+        fill_height_m=1,
+        rainfall_mm=50,
+    )
+    inventory = {"floor_area_m2": 0, "building_area_m2": 0}
+    metrics, _, _, _ = calculate_planning(request, inventory, {50: 100}, 100, [], [], 1)
+    values = {metric.key: metric for metric in metrics}
+    assert values["fill_volume"].after == 200
+    assert "runoff" not in values
 
 
 def test_regional_air_validates_units_times_and_missing_gases():
@@ -163,3 +181,68 @@ def test_wide_sliver_cannot_bypass_bounded_selection_area():
     )
     with pytest.raises(TwinError, match="5 km"):
         planning.selected_area(request, city, None, None)
+
+
+def replayable_report():
+    request = PlanningRequest(geometry={}, rainfall_mm=50)
+    inventory = {"floor_area_m2": 300, "building_area_m2": 100, "roads_count": 0}
+    cover = {50: 100}
+    metrics, findings, hourly, limitations = calculate_planning(
+        request, inventory, cover, 100, [], [], 1
+    )
+    inputs = request.model_dump(mode="json")
+    provenance = {"weather_samples": [], "air_samples": []}
+    report = PlanningReport(
+        computed_at=datetime.now(UTC).isoformat(),
+        city_id="test",
+        snapshot_id="test",
+        area_m2=100,
+        affected_geometry={},
+        geometry_source="test",
+        within_analysis_area=True,
+        inventory=inventory,
+        landcover=[{"class_code": 50, "area_m2": 100}],
+        coverage_fraction=1,
+        metrics=metrics,
+        findings=findings,
+        limitations=limitations,
+        sources=[],
+        weather={},
+        air={},
+        hourly=hourly,
+        inputs=inputs,
+        provenance=provenance,
+        input_sha256=canonical_digest(
+            {"inputs": inputs, "inventory": inventory, "cover": cover, "provenance": provenance}
+        ),
+        result_sha256="pending",
+    )
+    document = report.model_dump()
+    document["result_sha256"] = canonical_digest(
+        {key: value for key, value in document.items() if key != "result_sha256"}
+    )
+    return document
+
+
+def test_offline_replay_validates_hashes_and_recomputes_metrics():
+    document = replayable_report()
+    assert replay(document)["metrics_match"]
+    document["metrics"][0]["after"] += 1
+    with pytest.raises(TwinError, match="content was changed"):
+        replay(document)
+
+
+def test_numeric_hash_survives_browser_conversion_of_integral_floats():
+    assert canonical_digest(
+        {"number": 1.0, "missing": None, "nested": [0.0, 2.5]}
+    ) == canonical_digest({"number": 1, "missing": None, "nested": [0, 2.5]})
+
+
+def test_altered_metrics_are_rejected_even_with_a_recomputed_report_hash():
+    document = replayable_report()
+    document["metrics"][0]["after"] += 1
+    document["result_sha256"] = canonical_digest(
+        {key: value for key, value in document.items() if key != "result_sha256"}
+    )
+    with pytest.raises(TwinError, match="Replayed metrics"):
+        replay(document)

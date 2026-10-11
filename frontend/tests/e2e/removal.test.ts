@@ -44,7 +44,7 @@ test('click a real city feature, update consequences and compare removal without
   for (const y of [0.45, 0.55, 0.35, 0.65]) {
     for (const x of [0.45, 0.55, 0.35, 0.65]) {
       await page.mouse.click(box.x + box.width * x, box.y + box.height * y);
-      selected = await page.locator('[data-removal-panel]').isVisible();
+      selected = await page.locator('[data-removal-panel]').isVisible() && (await page.locator('[data-removal-panel]').getAttribute('data-removal-panel')) !== 'water';
       if (selected) break;
     }
     if (selected) break;
@@ -61,6 +61,7 @@ test('click a real city feature, update consequences and compare removal without
   await expect(page.locator('[data-impact-metric="runoff"]')).toBeVisible({ timeout: 15000 });
   await expect(page.getByText('runoff uses 30 mm design storm', { exact: false })).toBeVisible();
   if (process.env.RUN_LOCAL_AI_TESTS === '1') {
+    await page.getByText('Local AI explanation', { exact: true }).click();
     await page.getByRole('button', { name: /^Explain with / }).click();
     await expect(page.locator('[data-local-ai-explanation]')).toBeVisible({ timeout: 60000 });
     await expect(page.locator('[data-local-ai-explanation]')).toContainText('All quantities are computed');
