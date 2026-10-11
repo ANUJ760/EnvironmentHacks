@@ -69,7 +69,10 @@ for five minutes and regional air for fifteen minutes; exported samples freeze
 each calculation. Only a valid, sufficiently complete and fresh forecast drives
 weather-dependent proxies. Missing data are never replaced with fabricated zeros.
 Full-city visuals exceed the smaller verified scientific study boundary: geographic
-gaps are exposed, not extrapolated. Expand/import/publish a study to extend coverage.
+gaps are exposed, not extrapolated. Register and import additional studies (at most
+25 km² each) to extend coverage. Whole-city scientific coverage requires tiled
+datasets and validation; this release does not claim that the full-city visual map
+already has complete scientific measurements.
 
 ## Lightweight operation and test
 
@@ -94,6 +97,9 @@ Validated locally on 2026-10-11: 126 backend unit/contract tests, 38 frontend te
 four live map/planning checks against both development and the Docker frontend,
 TypeScript, lint, production builds and an actual exported-report replay passed.
 The optional Gemma explanation was also checked against the host Ollama service.
+The complete backend regression suite additionally passed: 177 tests, with 13
+opt-in integration tests skipped. Production dependencies have no known findings
+in `npm audit --omit=dev`; development-tool advisories remain separate release work.
 Replay an exported report without network access or a database:
 
 ```bash
