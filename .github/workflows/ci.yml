@@ -16,7 +16,7 @@ jobs:
           POSTGRES_PASSWORD: ecotwin_local_only
           POSTGRES_DB: ecotwin
         ports: ['55432:5432']
-        options: --health-cmd 'pg_isready -U ecotwin -d ecotwin' --health-interval 5s --health-timeout 3s --health-retries 20
+        options: --health-cmd=pg_isready --health-interval 5s --health-timeout 3s --health-retries 20
     env:
       APP_ENV: test
       DATABASE_URL: postgresql+psycopg://ecotwin:ecotwin_local_only@localhost:55432/ecotwin
