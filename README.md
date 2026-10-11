@@ -1,518 +1,358 @@
-<p align="center">
-  <img src="ecotwin.png" alt="GeCompose Hero Banner" width="100%" />
-</p>
+# E-City
 
-<p align='center'> <b> A computational digital twin for modeling, stress-testing, and optimizing interconnected urban systems before deploying interventions in the real world. </b> </p>
+**An evidence-backed city planner for exploring environmental changes.** E-City
+uses real mapped features and published datasets to help users examine the
+potential consequences of interventions such as removing a building, tree, road,
+or park area, or changing the ground cover in a drawn area.
 
----
+E-City is a screening and learning tool—not a substitute for site surveys,
+engineering design, environmental assessment, or locally calibrated models. It
+shows its data sources, assumptions, coverage gaps, and unavailable outputs so
+users can judge what a result does and does not mean.
 
-## Backend service (implemented)
+## What you can do
 
-The interactive city-planning simulator now supports custom-area clearing/filling,
-before/after energy and waste balances, runoff, vegetation, regional air baselines
-and reproducible exports. [Small architecture guide](docs/ARCHITECTURE.md) describes
-the implemented scope, explicit scientific limits and Docker/AWS handoff.
+- Explore the registered Zurich study area on a map and inspect mapped buildings,
+  trees, roads, parks, and other features.
+- Preview a feature removal or draw a bounded area to compare selected changes.
+- Review supported estimates such as mapped land-cover area, runoff screening,
+  building energy and waste proxies, demolition material balance, vegetation
+  indicators, and indicative solar potential when the required inputs are present.
+- See forecast and regional-air context with acquisition times, freshness, sample
+  coverage, and provenance.
+- Export a JSON report containing the request, assumptions, model/data references,
+  results, limitations, and integrity hashes. Exported reports can be replayed
+  offline with the included validation script.
+- Optionally ask a locally run Ollama model to organize verified findings. The
+  model does not calculate impact numbers or add unsupported claims.
 
-The preserved EcoTwin scientific library now has a FastAPI/PostGIS backend, immutable
-city snapshots, dataset import CLI, authenticated scenarios, recoverable worker jobs,
-local/S3 object storage, screening runoff/PV models and AWS Terraform infrastructure.
+Results depend on the selected geometry and the available source data. Missing
+data are reported as missing; they are not replaced with invented measurements.
+
+## Practical real-world use cases
+
+These examples show how a planner, facilities team, researcher, or community
+group could use E-City to structure an early-stage conversation. They are
+illustrative workflows, not claims that E-City has been deployed for these
+decisions or that its screening output is sufficient for approval or design.
+
+### 1. Review a proposed tree or building removal
+
+Before discussing a small redevelopment or maintenance proposal, select a mapped
+tree or building and inspect the removal preview. Compare the existing feature
+with the stated ground-replacement assumption. The report can show supported
+runoff and vegetation indicators, a roof-solar opportunity proxy for a building,
+and qualitative findings where evidence is not sufficient for a number.
+
+**Useful for:** preparing questions for a site visit, identifying missing
+measurements, and making trade-offs visible in a community or project meeting.
+
+**Follow-up needed:** confirm the asset, size, condition, ownership, and local
+rules on site. A mapped feature is not proof of current condition or removal
+permission.
+
+### 2. Compare paved and greener surfaces for a small site
+
+Draw a bounded area such as a courtyard, parking area, or campus plot. Compare the
+baseline cover with an explicitly chosen grass or other supported intervention
+and review runoff screening across soil-group assumptions. Use the result to
+identify whether drainage capacity, soil infiltration, or a surveyed design storm
+needs further investigation.
+
+**Useful for:** early conversations about permeable landscaping, rain gardens, or
+site retrofit options.
+
+**Follow-up needed:** obtain a site survey, local rainfall/design-storm criteria,
+soil tests, and drainage plans. E-City does not model sewer networks, flood depth,
+or detailed hydraulic performance.
+
+### 3. Screen a roof for solar follow-up
+
+Select a mapped building and review the indicative rooftop-solar opportunity
+under the report's stated usable-area and performance assumptions. Compare the
+screening result with the building's approximate footprint and the available
+solar-weather inputs; use it to decide whether a detailed roof assessment is
+worth commissioning.
+
+**Useful for:** prioritizing roofs for a qualified solar installer or facilities
+survey.
+
+**Follow-up needed:** verify roof geometry, orientation, shading, structural
+capacity, electrical connection, permits, and actual installed equipment. The
+screen is not an energy-yield guarantee or structural approval.
+
+### 4. Prepare a neighborhood greening or redevelopment discussion
+
+Use the map to inspect what is actually represented in the registered study
+area, then compare a small set of bounded intervention previews. Share the JSON
+reports so participants can see the selected geometry, assumptions, source
+coverage, and limitations rather than only a headline number.
+
+**Useful for:** scoping alternatives, explaining data gaps, and agreeing on what
+should be measured before a formal plan is prepared.
+
+**Follow-up needed:** bring in local residents, relevant city departments, and
+measured inventories. Regional air context and literature-based vegetation
+proxies do not establish local health or biodiversity impacts.
+
+### 5. Prioritize campus or municipal field surveys
+
+Use an existing map and its coverage warnings to identify which features,
+land-cover classes, or weather inputs are missing or uncertain. A team can use
+that list to plan tree inventories, roof inspections, soil sampling, or source
+data updates before attempting a more detailed comparison.
+
+**Useful for:** turning an initial desktop review into a practical data-collection
+plan.
+
+**Follow-up needed:** replace proxy assumptions with verified local observations
+where the decision requires them, then re-import and publish a new data snapshot.
+
+Across these cases, E-City is best used to ask **“what should we verify next?”**
+and to compare transparent screening assumptions—not to make a final engineering,
+permitting, health, or investment decision on its own.
+
+## Run locally
+
+The quickest route is the included Docker Compose harness. It downloads the
+registered public inputs, prepares the local database, imports the Zurich study,
+and starts the API, worker, and web app. Data and model files are kept outside Git.
+
+### Requirements
+
+- Git
+- Python 3.10 or later (only the standard library is needed on the host for the
+  setup launcher)
+- Docker Engine or Docker Desktop with Docker Compose v2
+- Internet access for initial image and dataset downloads
+- Several gigabytes of free disk space for images, source data, database, and
+  optional model weights
+
+The containers supply the application runtimes and dependencies. You do not need
+to install Python packages, Node.js, PostGIS, or Ollama on the host to use the
+standard local setup.
+
+### Start the application
+
+From the repository root, run:
 
 ```bash
 python3 scripts/local.py up
 ```
 
-Docker Compose v2 and Python 3.10+ are the only host runtime prerequisites.
-The launcher downloads real inputs automatically; datasets are **not bundled**.
-See [local/AWS deployment and storage](docs/DEPLOYMENT.md) and the
-[fresh-clone agent prompt](docs/LOCAL_AGENT_PROMPT.md). Download slots and exact import steps:
-[Dataset onboarding](docs/DATASETS.md). Setup, models and release limitations:
-[Operations](docs/OPERATIONS.md). Cloud deployment: [Terraform runbook](infra/terraform/README.md).
-Actual validation evidence: [Implementation report](docs/implementation-report.json).
-Interactive city removal impacts, live forecast data and optional local Ollama:
-[Removal previews](docs/REMOVAL_PREVIEWS.md).
-The handoff guide pack is private and excluded from Git and Docker builds.
-
-## Table of Contents
-
-- [The Core Philosophy](#the-core-philosophy)
-- [The Problem: Coupled Urban Dynamics](#the-problem-coupled-urban-dynamics)
-- [The Solution: System-Level Digital Twin](#the-solution-system-level-digital-twin)
-- [What the Platform Simulates](#what-the-platform-simulates)
-- [System Architecture & Dataflow](#system-architecture--dataflow)
-- [Mathematical & Physics Formulations](#mathematical--physics-formulations)
-  - [1. Mass Conservation Law](#1-mass-conservation-law)
-  - [2. Energy Balance & Recovery Physics](#2-energy-balance--recovery-physics)
-  - [3. Grid & Transformer Capacity Bounds](#3-grid--transformer-capacity-bounds)
-  - [4. Battery Storage & EV State-of-Charge Dynamics](#4-battery-storage--ev-state-of-charge-dynamics)
-  - [5. Constrained Multi-Objective Optimization](#5-constrained-multi-objective-optimization)
-- [Implementation Roadmap & Status](#implementation-roadmap--status)
-- [Example Scenarios & Walkthroughs](#example-scenarios--walkthroughs)
-  - [Scenario 1: Organic Waste-to-Energy Grid Support](#scenario-1-organic-waste-to-energy-grid-support)
-  - [Scenario 2: EV Adoption vs. Evening Transformer Stress](#scenario-2-ev-adoption-vs-evening-transformer-stress)
-  - [Scenario 3: 45°C Heatwave Resilience & Flexible Pre-Cooling](#scenario-3-45c-heatwave-resilience--flexible-pre-cooling)
-- [Research Hypothesis & Evaluation Framework](#research-hypothesis--evaluation-framework)
-- [Repository Structure](#repository-structure)
-- [Quickstart & Execution Guide](#quickstart--execution-guide)
-- [Why EcoTwin / EnergyTwin is Different](#why-ecotwin--energytwin-is-different)
-- [Limitations & Explicit Assumptions](#limitations--explicit-assumptions)
-- [License](#license)
-
----
-
-## The Core Philosophy
-
-Conventional sustainability tools ask: **"What happened in the past?"**  
-Traditional machine learning models ask: **"What is likely to happen?"**  
-**EcoTwin / EnergyTwin asks:**
-
-> **"If we intervene in this urban system, what is physically possible, what trade-offs occur, and what intervention produces the optimal feasible outcome?"**
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                             THE TRIAD OF TRUTH                              │
-├──────────────────────────────┬─────────────────────────────┬────────────────┤
-│         AI FORECASTS         │       PHYSICS GOVERNS       │  OPTIMIZATION  │
-│      "What May Happen"       │     "What Can Happen"       │  "What Should" │
-├──────────────────────────────┼─────────────────────────────┼────────────────┤
-│ Machine learning models      │ Deterministic conservation  │ Multi-criteria │
-│ learn temporal dynamics,     │ laws, capacity envelopes,   │ linear and     │
-│ weather sensitivity, and     │ and thermodynamic limits    │ mixed-integer  │
-│ stochastic urban behavior.   │ prevent hallucinated states.│ programming.   │
-└──────────────────────────────┴─────────────────────────────┴────────────────┘
-```
-
----
-
-## The Problem: Coupled Urban Dynamics
-
-Urban systems are not a collection of independent silos; they are tightly coupled physical networks. An intervention in one sector inevitably triggers cascading consequences across other sectors:
-
-```text
-Higher EV Adoption (20% → 50%)
-       │
-       ▼
-Surge in Evening Charging Demand (6 PM – 9 PM)
-       │
-       ▼
-Local Substation & Transformer Overload
-       │
-       ▼
-Grid Stress & High-Carbon Peaker Plant Dispatch
-       │
-       ├──► Need for Smart Charging & Vehicle-to-Grid (V2G)
-       └──► Need for Local Battery Storage & Waste-to-Energy Baselines
-```
-
-Similarly, on the generation and resource side:
-
-```text
-Increased Rooftop Solar PV (20 MW → 50 MW)
-       │
-       ▼
-Midday Generation Exceeds Local Consumption
-       │
-       ▼
-Reverse Power Flow & Grid Inverter Tripping
-       │
-       ▼
-Massive Renewable Energy Curtailment
-       │
-       ├──► Need for Thermal Pre-Cooling of Buildings
-       ├──► Need for Flexible Industrial & Water Pumping Loads
-       └──► Opportunity for Daytime EV Fleet Opportunity Charging
-```
-
-Single-domain dashboards and isolated carbon calculators fail because they treat these coupled systems independently. **EcoTwin / EnergyTwin unifies them into a single computational system.**
-
----
-
-## The Solution: System-Level Digital Twin
-
-EcoTwin / EnergyTwin establishes a digital twin of an urban ward, campus, or municipality. It evaluates interventions through an end-to-end computational pipeline:
-
-```text
-                    USER INTERVENTION
-             ("What if EV adoption rises to 50%
-               and waste segregation hits 75%?")
-                           │
-                           ▼
-                    AI FORECASTING
-          (Forecast generation, demand profiles,
-             and category fractions over time)
-                           │
-                           ▼
-              PHYSICS & CONSTRAINT ENGINE
-         (Audit mass conservation, energy limits,
-             transformer caps, battery bounds)
-                           │
-                           ▼
-             MULTI-OBJECTIVE OPTIMIZATION
-        (Solve optimal routing, battery dispatch,
-             and flexible load scheduling)
-                           │
-                           ▼
-               ECOTWIN SIMULATION ENGINE
-         (Calculate deterministic physical balance,
-            landfill diversion, and grid flows)
-                           │
-                           ▼
-                 EXPLAINABLE REPORTING
-          (Quantify material recovery, emissions,
-             energy yield, and capacity margins)
-```
-
----
-
-## What the Platform Simulates
-
-```
-                                  WEATHER & CLIMATE
-                            (Temperature, Solar Irradiance)
-                                          │
-                                          ▼
-                                ┌───────────────────┐
-                                │   AI FORECASTS    │
-                                └─────────┬─────────┘
-                                          │
-                                          ▼
-                ┌───────────────────────────────────────────────────┐
-                │                 URBAN ENERGY GRID                 │
-                └───────┬───────────────┬───────────────────┬───────┘
-                        │               │                   │
-         ┌──────────────┴───────┐       │       ┌───────────┴──────────────┐
-         ▼                      ▼       │       ▼                          ▼
-  ┌──────────────┐     ┌──────────────┐ │ ┌──────────────┐        ┌──────────────┐
-  │  Solar PV    │     │ Wind Turbine │ │ │ Battery ESS  │        │ Waste-to-    │
-  │  Generation  │     │ Generation   │ │ │ (SOC / SOH)  │        │ Energy (WtE) │
-  └──────────────┘     └──────────────┘ │ └──────────────┘        └──────────────┘
-                                        │
-     ┌──────────────────────────────────┴──────────────────────────────────┐
-     │                                                                     │
-     ▼                                  ▼                                  ▼
-┌──────────────┐               ┌──────────────────┐               ┌──────────────────┐
-│  Buildings   │               │ Electric Vehicle │               │ Resource / Waste │
-│  (HVAC/Load) │               │ Fleet (V2G/Grid) │               │ Recovery Network │
-└──────────────┘               └──────────────────┘               └──────────────────┘
-```
-
-The system models eight critical urban subsystems:
-
-1. **Municipal Solid Waste (MSW) Streams:** Organic, recyclable, e-waste, and residual fractions tracked with explicit physical mass units (`kg`, `tonnes`).
-2. **Materials Recovery & Recycling:** Sorting efficiencies, reject rates, contamination limits, and circular material recovery.
-3. **Waste-to-Energy & Bio-Power:** Anaerobic Digestion (biogas yield, thermal conversion, methane content, net electricity) and Waste-to-Energy incineration plants (calorific LHV, steam turbine efficiency, bottom ash metal recovery).
-4. **Renewable Energy Infrastructure:** Distributed rooftop solar PV, utility solar, and localized wind generation driven by climate and irradiance time series.
-5. **Battery Energy Storage Systems (BESS):** Dynamic State-of-Charge ($SOC$), charging/discharging efficiency, round-trip losses, and degradation limits.
-6. **Grid & Substation Infrastructure:** Peak load constraints, transformer thermal limits, reverse power flow monitoring, and grid import/export balances.
-7. **Electrified Mobility & V2G:** Fleet arrival/departure schedules, required departure $SOC$, maximum charging power, and bidirectional vehicle-to-grid grid stabilization.
-8. **Flexible Building & Cooling Demand:** Weather-sensitive HVAC cooling loads, indoor comfort bounds, pre-cooling flexibility, and industrial demand response.
-
----
-
-## System Architecture & Dataflow
-
-EcoTwin enforces strict architectural boundaries between predictive uncertainty, physical reality, and mathematical optimization:
-
-```mermaid
-flowchart TD
-    subgraph Data_Layer [1. Historical & Climate Data]
-        D1[(Historical Waste & Energy Data)]
-        D2[(Weather & Irradiance Feeds)]
-    end
-
-    subgraph AI_Layer [2. AI Predictive Layer]
-        A1[Multi-Output Forecaster]
-        A2[Physics Normalization Simplex]
-        D1 & D2 --> A1
-        A1 --> A2
-    end
-
-    subgraph Scenario_Layer [3. Urban Scenario Configuration]
-        S1[UrbanScenario Model]
-        S2[Structural & Capacity Validator]
-        A2 --> S1
-        S1 --> S2
-    end
-
-    subgraph Optimization_Layer [4. Decision Optimization]
-        O1[Two-Phase Simplex LP / MILP Solver]
-        O2[Multi-Criteria Objective Formulation]
-        S2 --> O1
-        O2 --> O1
-    end
-
-    subgraph Physics_Engine [5. EcoTwin Physics Engine]
-        P1[Deterministic Mass Balance Audit]
-        P2[Energy & Efficiency Thermodynamics]
-        P3[Facility Utilization Engine]
-        O1 --> P1 & P2 & P3
-    end
-
-    subgraph Output_Layer [6. Impact & Explainability]
-        R1[ScenarioExecutionResult]
-        R2[LLM Natural Language Planner]
-        P1 & P2 & P3 --> R1
-        R1 --> R2
-    end
-```
-
----
-
-## Mathematical & Physics Formulations
-
-### 1. Mass Conservation Law
-
-For every incoming municipal waste stream and processing node $j$, mass conservation is strictly maintained:
-
-$$M_{\text{in}} = M_{\text{recovered}} + M_{\text{landfill}} + M_{\text{loss}}$$
-
-For each individual waste category $c \in \{\text{Organic}, \text{Recyclable}, \text{E-Waste}, \text{Residual}\}$:
-
-$$M_c = M_{\text{total}} \cdot f_c \quad \text{where} \quad \sum_{c} f_c = 1.0, \quad f_c \ge 0$$
-
-Across all receiving facilities $k \in \mathcal{F}$:
-
-$$\sum_{k \in \mathcal{F}} x_{c, k} = 1.0, \quad \forall c \quad \text{and} \quad \sum_{c} M_c \cdot x_{c, k} \le \text{Capacity}_k, \quad \forall k$$
-
-### 2. Energy Balance & Recovery Physics
-
-Recovered energy from thermal conversion or biochemical digestion is governed by first-principles thermodynamics:
-
-$$E_{\text{recovered}} = \sum_{c} M_c \cdot x_{c, k} \cdot \text{LHV}_c \cdot \eta_{\text{conversion}}$$
-
-where:
-* $\text{LHV}_c$ is the Lower Heating Value / specific biogas energy content ($\text{kWh}/\text{tonne}$)
-* $\eta_{\text{conversion}} \in [0.0, 1.0]$ is the net electrical/thermal conversion efficiency
-
-### 3. Grid & Transformer Capacity Bounds
-
-At any time step $t$, the net power balance across the urban substation must not exceed rated transformer headroom:
-
-$$P_{\text{grid}}(t) = P_{\text{demand}}(t) + P_{\text{EV}}(t) + P_{\text{battery,charge}}(t) - P_{\text{solar}}(t) - P_{\text{WtE}}(t) - P_{\text{battery,discharge}}(t) - P_{\text{V2G}}(t)$$
-
-$$\left| P_{\text{grid}}(t) \right| \le P_{\text{transformer,max}}$$
-
-
-### 4. Battery Storage & EV State-of-Charge Dynamics
-
-Battery Energy Storage Systems and EV fleets operate within physical $SOC$ envelopes:
-
-$$SOC(t+1) = SOC(t) + \left( \eta_{\text{charge}} \cdot P_{\text{charge}}(t) - \frac{P_{\text{discharge}}(t)}{\eta_{\text{discharge}}} \right) \cdot \Delta t$$
-
-$$SOC_{\min} \le SOC(t) \le SOC_{\max}$$
-
-### 5. Constrained Multi-Objective Optimization
-
-The optimization engine searches for the optimal decision vector $x^*$ (routing splits, storage dispatch, flexible load shifts) that maximizes total system utility:
-
-$$\max_{x} \quad \mathcal{J}(x) = w_{\text{mat}} \cdot \frac{M_{\text{recovered}}(x)}{M_{\text{total}}} - w_{\text{landfill}} \cdot \frac{M_{\text{landfill}}(x)}{M_{\text{total}}} + w_{\text{energy}} \cdot \frac{E_{\text{recovered}}(x)}{E_{\text{ref}}} - w_{\text{cost}} \cdot \text{Cost}(x) - w_{\text{peak}} \cdot P_{\text{peak}}(x)$$
-
-$$\text{Subject to:} \quad \mathbf{A}_{\text{eq}} x = \mathbf{b}_{\text{eq}}, \quad \mathbf{A}_{\text{ub}} x \le \mathbf{b}_{\text{ub}}, \quad 0 \le x \le 1$$
-
----
-
-## Implementation Roadmap & Status
-
-| Phase | Milestone | Scope & Capabilities | Status |
-|---|---|---|---|
-| **Phase 1** | **Deterministic Physics Engine** | Core mass & energy balance models, explicit `Mass` and `Energy` unit types, category taxonomy, processing profile physics closure. | ✅ **Completed** |
-| **Phase 2** | **Urban Scenarios & Baselines** | `UrbanScenario` configuration, physical constraint validation, capacity verification, and synthetic metropolis baselines (`generate_baseline_scenario`). | ✅ **Completed** |
-| **Phase 3** | **AI Forecasting Layer** | Autoregressive multi-output Ridge regressor with lag, trend, and cyclical calendar features. Simplex projection ensuring mass/fraction conservation. | ✅ **Completed** |
-| **Phase 4** | **Routing Optimization** | Two-Phase Simplex Linear Programming optimizer for multi-criteria waste routing under capacity and compatibility bounds. | ✅ **Completed** |
-| **Phase 5** | **Grid & BESS Integration** | Power flow balance, transformer headroom modeling, solar PV generation, and battery charge/discharge scheduling. | 🔄 *Next* |
-| **Phase 6** | **EV Fleet & V2G Coordination** | Dynamic EV fleet arrival/departure scheduling, smart charging delay windows, and bidirectional V2G grid peak shaving. | 📋 *Planned* |
-| **Phase 7** | **Heatwave & Resilience Mode** | 45°C extreme heatwave simulation, building cooling demand response, HVAC pre-cooling flexibility, and emergency load shifting. | 📋 *Planned* |
-| **Phase 8** | **LLM Planning Interface** | Natural-language objective parser converting policy prompts (e.g., *"Cut peak load by 20% without violating comfort"*) into structured optimization models. | 📋 *Planned* |
-
----
-
-## Example Scenarios & Walkthroughs
-
-### Scenario 1: Organic Waste-to-Energy Grid Support
-* **Baseline:** Mixed organic waste is sent to a low-efficiency municipal incinerator (10% recovery, 20% landfill).
-* **AI Forecast:** Identifies a 398-tonne seasonal surge in food waste during summer.
-* **Optimization Decision:** Two-Phase Simplex routes 300 tonnes (100% capacity) to high-yield Composting and the remaining 98.14 tonnes to Anaerobic Digestion.
-* **Physical Outcome:**
-  * Material Recovery increases by **+30.28 tonnes** (+3.14% recovery rate).
-  * Generates **178.99 MWh** of clean bio-power.
-  * Mass balance strictly preserved ($\Delta M = 0.000000\text{ kg}$).
-
-### Scenario 2: EV Adoption vs. Evening Transformer Stress
-* **Scenario:** Neighborhood EV adoption surges from 20% to 50% (500 vehicles charging between 6 PM and 9 PM).
-* **Unconstrained Simulation:** Evening grid load exceeds local 2.5 MVA substation capacity by 35% (overload condition).
-* **EcoTwin Intervention:** Smart charging schedules shift non-critical charging to 11 PM – 4 AM while drawing 150 kWh from available V2G-enabled vehicles during the 7 PM peak.
-* **Physical Outcome:** Grid peak load reduced by 28%; transformer loading drops to 84% (safe operating margin).
-
-### Scenario 3: 45°C Heatwave Resilience & Flexible Pre-Cooling
-* **Scenario:** Ambient temperature climbs from 34°C to 45°C during an extreme heat event.
-* **AI Forecast:** Predicts a 42% spike in building HVAC cooling demand coinciding with solar irradiance peaks.
-* **Optimization Intervention:** Triggers building thermal pre-cooling at 1:30 PM using midday solar surplus; curtails non-essential cooling by 1.5°C during the 5 PM – 7 PM grid peak.
-* **Physical Outcome:** Prevents blackout without violating indoor thermal comfort envelopes ($21^\circ\text{C} \le T_{\text{indoor}} \le 25^\circ\text{C}$).
-
----
-
-## Research Hypothesis & Evaluation Framework
-
-```text
-Model A (AI-Only)          vs.          Model B (AI + Physics)          vs.          Model C (AI + Physics + Optimization)
-Pure neural network                      Machine learning with                        AI forecasting with deterministic
-black-box prediction                     mass/energy boundary checks                  physics closure and LP/MILP optimization
-```
-
-### Evaluation Dimensions:
-1. **Predictive Performance:** Mean Absolute Error (MAE), RMSE, and generalization across unseen seasonal cycles.
-2. **Physical Consistency Violations:** Frequency and magnitude of mass leaks ($\Delta M \ne 0$), negative energy generation, and capacity breaches.
-3. **Intervention Feasibility:** Measure whether recommended policy interventions can be physically deployed without violating operational envelopes.
-
----
-
-## Repository Structure
-
-```text
-EnvironmentHacks/
-├── ecotwin/                        # Core EcoTwin Library
-│   ├── __init__.py                 # Clean package API exports
-│   ├── units.py                    # Explicit Mass, Energy, and SpecificEnergy units
-│   ├── categories.py               # WasteCategory taxonomy (Organic, Recyclable, etc.)
-│   ├── stream.py                   # WasteStream model & simplex composition logic
-│   ├── facility.py                 # ProcessingFacility & CategoryProcessingProfile
-│   ├── routing.py                  # RouteSplit and RoutingPlan distribution
-│   ├── balance.py                  # EcoTwinEngine & SystemBalanceResult physics audit
-│   ├── scenario.py                 # UrbanScenario model & ScenarioExecutionResult
-│   ├── synthetic.py                # Deterministic synthetic city baseline generators
-│   ├── forecasting.py              # ML Ridge forecaster & physical constraint normalizer
-│   ├── optimization.py             # Two-Phase Simplex LP optimizer & OptimizationResult
-│   └── exceptions.py               # Domain exception hierarchy (PhysicsViolationError, etc.)
-├── examples/                       # Executable Pipeline Demonstrations
-│   ├── basic_scenario.py           # Phase 1: Physical mass/energy balance closure
-│   ├── baseline_scenario.py        # Phase 2: Synthetic city baseline execution
-│   ├── forecasting_pipeline.py     # Phase 3: Historical data -> Forecast -> Simulation
-│   └── optimization_pipeline.py    # Phase 4: Forecast -> LP Routing Optimization -> Physics
-├── tests/                          # Comprehensive Unit & Integration Test Suite
-│   ├── test_units.py               # Unit conversion, arithmetic & boundary tests
-│   ├── test_stream.py              # Simplex composition & stream split/combine tests
-│   ├── test_facility.py            # Facility profile conversion & capacity tests
-│   ├── test_routing.py             # Route splitting & compatibility tests
-│   ├── test_balance.py             # Global mass/energy balance closure integration
-│   ├── test_scenario.py            # Scenario validation & execution tests
-│   ├── test_synthetic.py           # Synthetic generator reproducibility tests
-│   ├── test_forecasting.py         # AI forecaster, lag features & normalization tests
-│   └── test_optimization.py        # Two-Phase Simplex LP solver & routing optimization tests
-└── README.md                       # Comprehensive Platform Documentation
-```
-
----
-
-## Quickstart & Execution Guide
-
-### 1. Run the Complete Test Suite
-The repository includes 49 comprehensive unit and integration tests covering physics invariants, AI forecasting, and optimization solvers:
+On first run this creates a local `.env` if needed, downloads and validates the
+registered inputs, migrates PostGIS, imports missing data, publishes a Zurich
+snapshot, builds the application images, and waits for the services to become
+healthy. Initial setup can take several minutes. When it is ready, open
+[http://localhost:3000](http://localhost:3000).
+
+Useful follow-up commands:
 
 ```bash
-python3 -m unittest discover tests
-```
-```text
-.................................................
-----------------------------------------------------------------------
-Ran 49 tests in 0.235s
-
-OK
+python3 scripts/local.py status       # show Compose service status
+python3 scripts/local.py download     # download inputs without starting services
+python3 scripts/local.py refresh      # explicitly refresh static source downloads
+python3 scripts/local.py up --offline # reuse downloaded inputs (images/network tiles may still need internet)
+python3 scripts/local.py down         # stop services; preserve data and volumes
 ```
 
-### 2. Run the End-to-End Forecasting & Optimization Pipeline
-Executes the full Phase 1 $\to$ Phase 4 pipeline (365-day synthetic history $\to$ ML forecaster $\to$ constrained forecast $\to$ baseline scenario $\to$ Two-Phase Simplex LP optimization $\to$ EcoTwin physical simulation):
+The setup is safe to rerun: already imported content hashes are skipped. Do not
+run two bootstrap operations at the same time. `down` intentionally does not
+delete the database volume or downloaded data. Do not use `docker compose down
+--volumes` unless you explicitly intend to erase the local database and Ollama
+model volume.
+
+If the default ports are in use, set these variables before running the launcher:
 
 ```bash
-python3 examples/optimization_pipeline.py
+ECOTWIN_DB_PORT=5433 ECOTWIN_API_PORT=8001 ECOTWIN_FRONTEND_PORT=3001 \
+  python3 scripts/local.py up
 ```
 
-#### Sample Output:
+Then open the printed frontend URL. Configuration and generated secrets are kept
+in the ignored `.env`; never commit it.
+
+### Optional local AI explanations
+
+Ollama is optional and is not a Python package or part of the application image.
+To start its Compose profile and download the default `qwen2.5:1.5b` model (about
+1 GB), run:
+
+```bash
+python3 scripts/local.py up --with-ollama
+```
+
+This uses additional disk and memory. Core maps, calculations, and reports work
+without Ollama. The explanation feature can only organize findings already
+computed by E-City; it cannot change numeric results. The model is stored in the
+local Docker volume `ollama_models`, not in the repository.
+
+## Data, downloads, and storage
+
+Dataset recipes are versioned in [`config/datasets/zurich.json`](config/datasets/zurich.json).
+The setup harness stores downloaded and generated data under ignored local
+directories; the actual data files are not committed to this repository.
+
+| Data | Purpose | Local location |
+| --- | --- | --- |
+| OpenStreetMap extract | Mapped buildings, roads, parks, and other features | `data/raw/osm/` |
+| ESA WorldCover 2021 | Land-cover class-area estimates | `data/raw/worldcover/` |
+| Zurich municipal tree register | Local mapped tree inventory where available | `data/raw/` |
+| Open-Meteo forecast | Hourly weather inputs for supported previews | `data/raw/weather/` |
+| Regional air forecast | Regional pollutant and greenhouse-gas context | `data/raw/air/` |
+| Source receipts and manifests | Licenses, source references, timestamps, hashes | `data/bootstrap/`, `data/manifests/` |
+| Processed scientific objects | Immutable imported source objects | `data/processed/` |
+| Map tiles, imagery, and fonts | Disposable on-demand map cache | `data/cache/maps/` |
+| PostGIS database | City geometry, revisions, and snapshots | Docker volume `pgdata` |
+| Optional Ollama weights | Locally downloaded model files | Docker volume `ollama_models` |
+
+On-demand map tiles are cached as they are used; this is not a complete offline
+map archive. Initial downloads and newly requested map areas require internet
+access. The downloaded Zurich sample covers a bounded analysis area; the visual
+map may show a wider area than the validated scientific data. Coverage limits
+are shown in the app rather than extrapolated silently.
+
+Data providers have different licenses and terms. Check the source recipe and
+provider terms before redistributing datasets or using them commercially. In
+particular, OpenStreetMap data have ODbL attribution and share-alike obligations;
+ESA WorldCover is CC BY 4.0. See the [dataset guide](docs/DATASETS.md) for source
+details, registering another study area, manual imports, and provenance steps.
+
+## How it works
+
 ```text
-==========================================================================
- EcoTwin Phase 4: Waste Forecasting & Routing Optimization Pipeline
-==========================================================================
+Web browser (Next.js, React, MapLibre)
+              │ same-origin API gateway
+              ▼
+FastAPI backend ───── PostGIS (city features, source revisions, snapshots)
+       │
+       ├── deterministic screening models and report export
+       ├── provider adapters for weather and regional air
+       └── verified object storage (local files in development, private S3 in AWS)
 
-[Step 1] Generating Synthetic Historical Waste Dataset (365 days)...
-  * Generated 365 daily observations (2025-01-01 to 2025-12-31)
-
-[Step 2] Training ML Forecaster on Historical Dynamics...
-  * Model trained successfully on lag, trend, and cyclical calendar features.
-
-[Step 3] Predicting Next-Day Urban Waste Generation & Composition...
-  * Forecast Date        : 2026-01-01
-  * Predicted Total Waste: 965.80 tonnes
-  * Predicted Composition:
-      - organic     :  398.14 tonnes (41.22%)
-      - recyclable  :  233.48 tonnes (24.18%)
-      - e-waste     :   55.76 tonnes ( 5.77%)
-      - residual    :  278.42 tonnes (28.83%)
-
-[Step 4] Configuring Urban Facilities & Baseline Scenario...
-[Step 5] Optimizing Waste Routing via Linear Programming (Two-Phase Simplex)...
-
-[Step 6] Execution & Physical Balance Comparison:
-==========================================================================
- EcoTwin Waste-Routing Optimization Report: Metropolis_Beta_Unoptimized
-==========================================================================
-  * Solver Status       : OPTIMAL (Two-Phase Simplex LP)
-  * Baseline Score      : 0.8107
-  * Optimized Score     : 0.8476 (Score Improvement: +0.0369 / +4.55%)
-
-[System-Level Metrics Comparison]
-  Metric                         | Baseline     | Optimized    | Delta     
-  -------------------------------|--------------|--------------|-----------
-  Landfill Residue (tonnes)      |     138.89 t |     138.89 t |    +0.00 t
-  Landfill Diversion Rate        |      85.62 % |      85.62 % |    +0.00 %
-  Material Recovered (tonnes)    |     512.58 t |     542.85 t |   +30.28 t
-  Material Recovery Rate         |      53.07 % |      56.21 % |    +3.14 %
-  Energy Recovered (MWh)         |     191.26   |     178.99   |   -12.27 MWh
-  Mass Balance Error (kg)        |   0.000000 kg|   0.000000 kg| 0.000000 kg
-
-[Facility Capacity Utilization Comparison]
-  Facility                       | Baseline     | Optimized   
-  -------------------------------|--------------|-------------
-  Composting_Center              |       66.4 % |      100.0 %
-  Anaerobic_Digestion_Plant      |       56.9 % |       28.0 %
-  Materials_Recovery_Facility    |       58.4 % |       58.4 %
-  E_Waste_Hub                    |       55.8 % |       55.8 %
-  Waste_to_Energy_Plant          |       69.6 % |       69.6 %
-==========================================================================
-
-[Optimized Category Routing Decisions]
-  * organic      -> Composting_Center (75.3%), Anaerobic_Digestion_Plant (24.7%)
-  * recyclable   -> Materials_Recovery_Facility (100.0%)
-  * e-waste      -> E_Waste_Hub (100.0%)
-  * residual     -> Waste_to_Energy_Plant (100.0%)
+Background worker ─── database queue locally / SQS in the AWS deployment
+Optional Ollama ───── local explanation of already-computed findings
 ```
 
----
+The web app is in `frontend/`; the Python API, models, ingestion tools, and worker
+are in `ecotwin/`; database migrations are in `migrations/`. `compose.yaml`
+defines the local services. The API exposes interactive documentation at
+[http://localhost:8000/docs](http://localhost:8000/docs) and health endpoints at
+`/livez` and `/readyz` while running.
 
-## Why EcoTwin / EnergyTwin is Different
+## Scientific scope and limitations
 
+E-City combines mapped data with transparent, deterministic screening methods.
+Some features or indicators may be unavailable for a location if its data are
+missing or outside the published study coverage. Current models may include:
+
+- **Land cover:** area changes by mapped WorldCover class; the 2021 land-cover
+  raster is not a current tree-by-tree inventory.
+- **Runoff:** event-volume screening using published curve-number methods and
+  explicit soil/cover assumptions. It does not calculate flood depth, drainage
+  routing, or storm-sewer capacity.
+- **Buildings and energy:** mapped footprint and roof-solar opportunity estimates
+  using stated assumptions. Roof tilt, shading, structure, and installed panels
+  are not necessarily known.
+- **Vegetation:** mapped canopy or tree indicators and literature-based biomass
+  proxies. These are not a local tree-health assessment or calibrated carbon
+  inventory.
+- **Weather and air:** forecast or regional context, not street-level sensors.
+  A regional concentration is not a predicted concentration change caused by an
+  intervention.
+- **Waste and demolition:** supported mass/energy balances and material proxies
+  where the required mapped or supplied inputs exist. Assumed values are labeled.
+
+The app does not claim to predict health outcomes, biodiversity change, street
+temperature or pollution deltas, flood depths, or river chemistry. See the
+[architecture and accuracy notes](docs/ARCHITECTURE.md) and
+[interactive preview methodology](docs/REMOVAL_PREVIEWS.md) for formulas, data
+coverage, and detailed assumptions.
+
+## Development and verification
+
+Use the Docker harness for a complete local experience. For code development,
+the backend targets Python 3.12 and uses `uv`; the frontend targets Node.js 22
+and uses the committed npm lockfile.
+
+```bash
+# Python dependencies and checks
+uv sync --frozen
+uv run ruff check .
+uv run ruff format --check ecotwin tests scripts migrations
+uv run mypy
+uv run pytest -q
+
+# Frontend checks
+cd frontend
+npm ci
+npm run api:check
+npm run lint
+npm run typecheck
+npm run test
+npm run build
 ```
-┌──────────────────────────────────────┬──────────────────────────────────────┐
-│       TRADITIONAL SUSTAINABILITY     │       ECOTWIN / ENERGYTWIN           │
-├──────────────────────────────────────┼──────────────────────────────────────┤
-│ ❌ Static historical dashboards       │ ✅ Counterfactual forward simulation  │
-│ ❌ Unconstrained black-box AI        │ ✅ Physics-informed conservation laws│
-│ ❌ Generic sustainability checklists │ ✅ Multi-objective LP/MILP solutions │
-│ ❌ Isolated domain calculations      │ ✅ Interconnected grid/waste/mobility│
-│ ❌ LLM hallucinations of numbers     │ ✅ LLM as reasoning & explanation UI │
-└──────────────────────────────────────┴──────────────────────────────────────┘
+
+PostGIS integration tests require a migrated test database and are opt-in. Do not
+point tests at production data. The GitHub Actions workflow runs backend, frontend,
+dependency, container-build, and Trivy security checks for pull requests and
+pushes to the `backend` branch.
+
+To validate a downloaded report offline:
+
+```bash
+uv run python scripts/replay_planning_report.py PATH_TO_EXPORTED_REPORT.json
 ```
 
----
+The replay checks report integrity and recalculates outputs from captured inputs;
+it does not validate that the inputs represent reality or establish who created
+the report. See [operations](docs/OPERATIONS.md) for the local test setup and
+release gates.
 
-## Limitations & Explicit Assumptions
+## Deploy to AWS
 
-A trustworthy digital twin makes its modeling assumptions fully transparent:
+The AWS path is explicit and operator-controlled; running locally does not create
+cloud resources. The deployment harness uses separate backend and frontend images,
+ECS/Fargate, RDS PostgreSQL with PostGIS, a private S3 data bucket, SQS for the
+worker, and supporting AWS networking, secrets, and monitoring. Terraform stages
+and dry-run-by-default helper scripts are documented in these guides:
 
-1. **Synthetic Benchmark Datasets:** Historical time series and city profiles are algorithmically synthesized for benchmark testing and do not claim to represent specific empirical municipality records.
-2. **Simplified Grid Linearization:** Current power flow models assume balanced three-phase operation and linear substation headroom.
-3. **Deterministic Conversion Profiles:** Facility conversion efficiencies and recovery fractions are treated as piecewise-linear profiles subject to capacity ceilings.
-4. **Behavioral Approximations:** Human compliance with waste segregation and EV charging arrival times are modeled with statistical distributions.
+- [AWS/local deployment and persistent data placement](docs/DEPLOYMENT.md)
+- [Terraform infrastructure and release runbook](infra/terraform/README.md)
+- [Dataset source and import guide](docs/DATASETS.md)
 
----
+In AWS, S3 stores immutable, verified raw/processed datasets, manifests, and
+results; RDS/PostGIS stores spatial features and revision metadata. ECS task disk
+is temporary and must not be treated as the dataset store. Use private encrypted
+S3, IAM task roles, and no long-lived credentials in images. Ollama is not
+provisioned by the Terraform deployment; keep explanations optional or operate a
+separately secured service. Review AWS costs, provider licenses, security scans,
+and the runbook before applying infrastructure.
+
+## Repository map
+
+```text
+ecotwin/                 Python API, scientific models, ingestion, worker
+frontend/                Next.js planner and map UI
+config/datasets/          Registered dataset download recipes
+data/                    Local downloads and generated data (ignored by Git)
+migrations/              Alembic/PostGIS schema migrations
+model_parameters/        Versioned model coefficients and defaults
+scripts/local.py         Fresh-clone local setup and service launcher
+scripts/bootstrap_data.py Dataset download, validation, and import harness
+infra/terraform/         AWS infrastructure
+docs/                    Architecture, datasets, deployment, and operations guides
+tests/                   Backend tests; frontend tests are under frontend/tests/
+```
+
+## Project name and internal identifiers
+
+**E-City** is the public-facing project name. Internal identifiers such as the
+Python package and command (`ecotwin`), database name, Docker image names, and
+`ECOTWIN_*` configuration variables are retained for compatibility with the
+existing code and deployment setup.
 
 ## License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+See [`LICENSE`](LICENSE). Dataset licensing and attribution are separate; consult
+the individual source terms before copying or redistributing data.
