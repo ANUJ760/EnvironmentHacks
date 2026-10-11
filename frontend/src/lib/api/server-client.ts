@@ -4,11 +4,7 @@ import { getServerEnv } from '../env';
 
 export function createServerApiClient(customToken?: string) {
   const env = getServerEnv();
-  const token =
-    customToken ||
-    (env.FRONTEND_AUTH_MODE === 'dev' && env.ECOTWIN_DEV_BEARER_TOKEN
-      ? env.ECOTWIN_DEV_BEARER_TOKEN
-      : undefined);
+  const token = customToken;
 
   const headers: Record<string, string> = {
     Accept: 'application/json',

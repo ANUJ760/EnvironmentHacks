@@ -1,14 +1,14 @@
 # EcoTwin Frontend Application
 
-Production-oriented user-facing web application and scenario simulation lab for **EcoTwin**.
+Public, lightweight city-change planner for **EcoTwin**. No sign-in required.
 
 ## Tech Stack
 - **Framework**: Next.js 15 (App Router, Standalone SSR)
 - **UI & Components**: React 19, Tailwind CSS, Lucide icons
-- **City Rendering**: lightweight MapLibre illustrated 2D / aerial imagery; PixiJS lab and accessible DOM/SVG fallback
+- **City Rendering**: lightweight MapLibre illustrated 2D / aerial imagery
 - **Data & State**: TanStack Query v5, Zustand v5, Zod
 - **API Contract**: openapi-typescript & openapi-fetch (strictly synced with `backend/openapi.json`)
-- **Authentication**: NextAuth.js v4 (Cognito OIDC in production, local dev token injection in development)
+- **Access**: public read-only planning; retired account-owned API operations are not exposed by the gateway
 - **Testing**: Vitest, React Testing Library, Playwright, axe-core
 
 ## Local Development Quickstart
@@ -17,14 +17,7 @@ Production-oriented user-facing web application and scenario simulation lab for 
    ```bash
    cp .env.example .env.local
    ```
-2. Generate an authenticated developer token using the backend CLI:
-   ```bash
-   # From repository root
-   uv run ecotwin auth issue-dev-token --subject local-developer --minutes 120
-   ```
-   Add the token to `frontend/.env.local` as `ECOTWIN_DEV_BEARER_TOKEN`.
-
-3. Install dependencies and run:
+2. Install dependencies and run:
    ```bash
    npm ci
    npm run api:generate
@@ -46,7 +39,7 @@ Production-oriented user-facing web application and scenario simulation lab for 
 ## Interactive removal impacts
 
 Click a feature or any ground location, or use **Draw area** for a custom polygon.
-The **Impact** panel compares clearing, filling or grass conversion under the same
+The single planner compares clearing, filling or grass conversion under the same
 conditions: runoff, energy, operational waste, demolition materials, vegetation and
 regional air context. Editable assumptions and evidence limits are separate from
 the main cards. Export a JSON report for offline replay. Optional local Ollama

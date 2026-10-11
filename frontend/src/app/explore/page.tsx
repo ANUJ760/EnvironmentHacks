@@ -147,14 +147,7 @@ export default function ExplorePage() {
                   className="flex-1 flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-ink text-xs font-semibold py-2 px-3 rounded-lg transition-colors"
                 >
                   <Eye className="w-3.5 h-3.5" />
-                  View Map
-                </Link>
-                <Link
-                  href={`/city/${city.id}/simulate`}
-                  className="flex-1 flex items-center justify-center gap-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold py-2 px-3 rounded-lg transition-colors shadow-xs"
-                >
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                  Simulate Lab
+                  Open planner
                 </Link>
               </div>
             </div>

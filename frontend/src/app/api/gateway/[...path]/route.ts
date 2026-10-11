@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
 import { getServerEnv } from '@/lib/env';
 
 // Allowlist regex patterns for backend endpoints
@@ -52,28 +51,15 @@ async function handleGatewayRequest(req: NextRequest, { params }: { params: Prom
     );
   }
 
-  // Resolve authorization token
-  let token: string | undefined;
-  if (env.FRONTEND_AUTH_MODE === 'dev') {
-    token = env.ECOTWIN_DEV_BEARER_TOKEN;
-  } else {
-    const sessionToken = await getToken({ req, secret: env.NEXTAUTH_SECRET });
-    if (sessionToken && sessionToken.accessToken) {
-      token = sessionToken.accessToken as string;
-    }
-  }
-
-  // If authentication is required for this route but token is missing
-  if (matchedRoute.authRequired && !token) {
+  // The public planner never forwards a privileged service token.
+  // Retired account-owned workflows remain protected at the backend.
+  if (matchedRoute.authRequired) {
     return NextResponse.json(
       {
-        code: 'UNAUTHORIZED',
-        detail:
-          env.FRONTEND_AUTH_MODE === 'dev'
-            ? 'Local development bearer token required in .env.local (run `docker compose exec api ecotwin auth issue-dev-token` or uv run equivalent)'
-            : 'Authentication required. Please sign in.',
+        code: 'WORKFLOW_RETIRED',
+        detail: 'Use the public city planner. Saved account workflows have been retired from this application.',
       },
-      { status: 401, headers: { 'Content-Type': 'application/problem+json' } }
+      { status: 410, headers: { 'Content-Type': 'application/problem+json' } }
     );
   }
 
@@ -85,9 +71,6 @@ async function handleGatewayRequest(req: NextRequest, { params }: { params: Prom
   const forwardHeaders = new Headers();
   forwardHeaders.set('Accept', 'application/json');
 
-  if (token) {
-    forwardHeaders.set('Authorization', `Bearer ${token}`);
-  }
 
   const ifMatch = req.headers.get('if-match');
   if (ifMatch) {
