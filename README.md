@@ -1,11 +1,15 @@
-# E-City
+<p align="center">
+  <img src="ecotwin.png" alt="EcoTwin city planning banner" width="100%" />
+</p>
 
-**An evidence-backed city planner for exploring environmental changes.** E-City
+# EcoTwin
+
+**An evidence-backed city planner for exploring environmental changes.** EcoTwin
 uses real mapped features and published datasets to help users examine the
 potential consequences of interventions such as removing a building, tree, road,
 or park area, or changing the ground cover in a drawn area.
 
-E-City is a screening and learning tool—not a substitute for site surveys,
+EcoTwin is a screening and learning tool—not a substitute for site surveys,
 engineering design, environmental assessment, or locally calibrated models. It
 shows its data sources, assumptions, coverage gaps, and unavailable outputs so
 users can judge what a result does and does not mean.
@@ -32,8 +36,8 @@ data are reported as missing; they are not replaced with invented measurements.
 ## Practical real-world use cases
 
 These examples show how a planner, facilities team, researcher, or community
-group could use E-City to structure an early-stage conversation. They are
-illustrative workflows, not claims that E-City has been deployed for these
+group could use EcoTwin to structure an early-stage conversation. They are
+illustrative workflows, not claims that EcoTwin has been deployed for these
 decisions or that its screening output is sufficient for approval or design.
 
 ### 1. Review a proposed tree or building removal
@@ -63,7 +67,7 @@ needs further investigation.
 site retrofit options.
 
 **Follow-up needed:** obtain a site survey, local rainfall/design-storm criteria,
-soil tests, and drainage plans. E-City does not model sewer networks, flood depth,
+soil tests, and drainage plans. EcoTwin does not model sewer networks, flood depth,
 or detailed hydraulic performance.
 
 ### 3. Screen a roof for solar follow-up
@@ -108,7 +112,7 @@ plan.
 **Follow-up needed:** replace proxy assumptions with verified local observations
 where the decision requires them, then re-import and publish a new data snapshot.
 
-Across these cases, E-City is best used to ask **“what should we verify next?”**
+Across these cases, EcoTwin is best used to ask **“what should we verify next?”**
 and to compare transparent screening assumptions—not to make a final engineering,
 permitting, health, or investment decision on its own.
 
@@ -184,7 +188,7 @@ python3 scripts/local.py up --with-ollama
 
 This uses additional disk and memory. Core maps, calculations, and reports work
 without Ollama. The explanation feature can only organize findings already
-computed by E-City; it cannot change numeric results. The model is stored in the
+computed by EcoTwin; it cannot change numeric results. The model is stored in the
 local Docker volume `ollama_models`, not in the repository.
 
 ## Data, downloads, and storage
@@ -242,7 +246,7 @@ defines the local services. The API exposes interactive documentation at
 
 ## Scientific scope and limitations
 
-E-City combines mapped data with transparent, deterministic screening methods.
+EcoTwin combines mapped data with transparent, deterministic screening methods.
 Some features or indicators may be unavailable for a location if its data are
 missing or outside the published study coverage. Current models may include:
 
@@ -347,7 +351,7 @@ tests/                   Backend tests; frontend tests are under frontend/tests/
 
 ## Project name and internal identifiers
 
-**E-City** is the public-facing project name. Internal identifiers such as the
+**EcoTwin** is the project name. Internal identifiers such as the
 Python package and command (`ecotwin`), database name, Docker image names, and
 `ECOTWIN_*` configuration variables are retained for compatibility with the
 existing code and deployment setup.
