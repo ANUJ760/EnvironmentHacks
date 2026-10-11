@@ -4,316 +4,182 @@
 
 # EcoTwin
 
-**An evidence-backed city planner for exploring environmental changes.** EcoTwin
-uses real mapped features and published datasets to help users examine the
-potential consequences of interventions such as removing a building, tree, road,
-or park area, or changing the ground cover in a drawn area.
+**Explore the environmental trade-offs of changing a real city.** EcoTwin combines
+mapped urban features, public datasets, and transparent scientific calculations
+to compare small interventions before committing to a detailed site assessment.
 
-EcoTwin is a screening and learning tool—not a substitute for site surveys,
-engineering design, environmental assessment, or locally calibrated models. It
-shows its data sources, assumptions, coverage gaps, and unavailable outputs so
-users can judge what a result does and does not mean.
+**[Open the deployed application](https://dl65r09hy25vj.cloudfront.net)** — AWS
+staging deployment in Mumbai (`ap-south-1`). The public planner requires no sign-in.
 
-## What you can do
+The current study covers central Zurich. Select a building, tree, road, or park,
+or draw an area to explore clearing, filling, and supported ground-cover changes.
+Results show the assumptions, evidence, and data gaps behind each estimate.
 
-- Explore the registered Zurich study area on a map and inspect mapped buildings,
-  trees, roads, parks, and other features.
-- Preview a feature removal or draw a bounded area to compare selected changes.
-- Review supported estimates such as mapped land-cover area, runoff screening,
-  building energy and waste proxies, demolition material balance, vegetation
-  indicators, and indicative solar potential when the required inputs are present.
-- See forecast and regional-air context with acquisition times, freshness, sample
-  coverage, and provenance.
-- Export a JSON report containing the request, assumptions, model/data references,
-  results, limitations, and integrity hashes. Exported reports can be replayed
-  offline with the included validation script.
-- Optionally ask a locally run Ollama model to organize verified findings. The
-  model does not calculate impact numbers or add unsupported claims.
+## What EcoTwin does
 
-Results depend on the selected geometry and the available source data. Missing
-data are reported as missing; they are not replaced with invented measurements.
+- **Interactive planning:** inspect mapped features, adjust assumptions, and
+  compare before/after intervention previews on the same map.
+- **Environmental screening:** estimate supported changes in runoff, vegetation,
+  building energy and waste proxies, demolition material balance, fill volume,
+  and indicative solar opportunity when the required inputs are available.
+- **Weather and air context:** display forecast inputs and regional air data with
+  freshness, coverage, and source information.
+- **Reproducible reports:** export geometry, inputs, model version, dataset
+  references, results, limitations, and integrity hashes as JSON. The replay tool
+  checks hashes and recalculates results from captured inputs.
 
-## Practical real-world use cases
+Missing measurements are reported explicitly. Numerical impacts come from
+deterministic models; optional AI explanations use their existing findings.
 
-These examples show how a planner, facilities team, researcher, or community
-group could use EcoTwin to structure an early-stage conversation. They are
-illustrative workflows, not claims that EcoTwin has been deployed for these
-decisions or that its screening output is sufficient for approval or design.
+## Practical use cases, impacts, and benefits
 
-### 1. Review a proposed tree or building removal
-
-Before discussing a small redevelopment or maintenance proposal, select a mapped
-tree or building and inspect the removal preview. Compare the existing feature
-with the stated ground-replacement assumption. The report can show supported
-runoff and vegetation indicators, a roof-solar opportunity proxy for a building,
-and qualitative findings where evidence is not sufficient for a number.
-
-**Useful for:** preparing questions for a site visit, identifying missing
-measurements, and making trade-offs visible in a community or project meeting.
-
-**Follow-up needed:** confirm the asset, size, condition, ownership, and local
-rules on site. A mapped feature is not proof of current condition or removal
-permission.
-
-### 2. Compare paved and greener surfaces for a small site
-
-Draw a bounded area such as a courtyard, parking area, or campus plot. Compare the
-baseline cover with an explicitly chosen grass or other supported intervention
-and review runoff screening across soil-group assumptions. Use the result to
-identify whether drainage capacity, soil infiltration, or a surveyed design storm
-needs further investigation.
-
-**Useful for:** early conversations about permeable landscaping, rain gardens, or
-site retrofit options.
-
-**Follow-up needed:** obtain a site survey, local rainfall/design-storm criteria,
-soil tests, and drainage plans. EcoTwin does not model sewer networks, flood depth,
-or detailed hydraulic performance.
-
-### 3. Screen a roof for solar follow-up
-
-Select a mapped building and review the indicative rooftop-solar opportunity
-under the report's stated usable-area and performance assumptions. Compare the
-screening result with the building's approximate footprint and the available
-solar-weather inputs; use it to decide whether a detailed roof assessment is
-worth commissioning.
-
-**Useful for:** prioritizing roofs for a qualified solar installer or facilities
-survey.
-
-**Follow-up needed:** verify roof geometry, orientation, shading, structural
-capacity, electrical connection, permits, and actual installed equipment. The
-screen is not an energy-yield guarantee or structural approval.
-
-### 4. Prepare a neighborhood greening or redevelopment discussion
-
-Use the map to inspect what is actually represented in the registered study
-area, then compare a small set of bounded intervention previews. Share the JSON
-reports so participants can see the selected geometry, assumptions, source
-coverage, and limitations rather than only a headline number.
-
-**Useful for:** scoping alternatives, explaining data gaps, and agreeing on what
-should be measured before a formal plan is prepared.
-
-**Follow-up needed:** bring in local residents, relevant city departments, and
-measured inventories. Regional air context and literature-based vegetation
-proxies do not establish local health or biodiversity impacts.
-
-### 5. Prioritize campus or municipal field surveys
-
-Use an existing map and its coverage warnings to identify which features,
-land-cover classes, or weather inputs are missing or uncertain. A team can use
-that list to plan tree inventories, roof inspections, soil sampling, or source
-data updates before attempting a more detailed comparison.
-
-**Useful for:** turning an initial desktop review into a practical data-collection
-plan.
-
-**Follow-up needed:** replace proxy assumptions with verified local observations
-where the decision requires them, then re-import and publish a new data snapshot.
-
-Across these cases, EcoTwin is best used to ask **“what should we verify next?”**
-and to compare transparent screening assumptions—not to make a final engineering,
-permitting, health, or investment decision on its own.
-
-## Run locally
-
-The quickest route is the included Docker Compose harness. It downloads the
-registered public inputs, prepares the local database, imports the Zurich study,
-and starts the API, worker, and web app. Data and model files are kept outside Git.
-
-### Requirements
-
-- Git
-- Python 3.10 or later (only the standard library is needed on the host for the
-  setup launcher)
-- Docker Engine or Docker Desktop with Docker Compose v2
-- Internet access for initial image and dataset downloads
-- Several gigabytes of free disk space for images, source data, database, and
-  optional model weights
-
-The containers supply the application runtimes and dependencies. You do not need
-to install Python packages, Node.js, PostGIS, or Ollama on the host to use the
-standard local setup.
-
-### Start the application
-
-From the repository root, run:
-
-```bash
-python3 scripts/local.py up
-```
-
-On first run this creates a local `.env` if needed, downloads and validates the
-registered inputs, migrates PostGIS, imports missing data, publishes a Zurich
-snapshot, builds the application images, and waits for the services to become
-healthy. Initial setup can take several minutes. When it is ready, open
-[http://localhost:3000](http://localhost:3000).
-
-Useful follow-up commands:
-
-```bash
-python3 scripts/local.py status       # show Compose service status
-python3 scripts/local.py download     # download inputs without starting services
-python3 scripts/local.py refresh      # explicitly refresh static source downloads
-python3 scripts/local.py up --offline # reuse downloaded inputs (images/network tiles may still need internet)
-python3 scripts/local.py down         # stop services; preserve data and volumes
-```
-
-The setup is safe to rerun: already imported content hashes are skipped. Do not
-run two bootstrap operations at the same time. `down` intentionally does not
-delete the database volume or downloaded data. Do not use `docker compose down
---volumes` unless you explicitly intend to erase the local database and Ollama
-model volume.
-
-If the default ports are in use, set these variables before running the launcher:
-
-```bash
-ECOTWIN_DB_PORT=5433 ECOTWIN_API_PORT=8001 ECOTWIN_FRONTEND_PORT=3001 \
-  python3 scripts/local.py up
-```
-
-Then open the printed frontend URL. Configuration and generated secrets are kept
-in the ignored `.env`; never commit it.
-
-### Optional local AI explanations
-
-Ollama is optional and is not a Python package or part of the application image.
-To start its Compose profile and download the default `qwen2.5:1.5b` model (about
-1 GB), run:
-
-```bash
-python3 scripts/local.py up --with-ollama
-```
-
-This uses additional disk and memory. Core maps, calculations, and reports work
-without Ollama. The explanation feature can only organize findings already
-computed by EcoTwin; it cannot change numeric results. The model is stored in the
-local Docker volume `ollama_models`, not in the repository.
-
-## Data, downloads, and storage
-
-Dataset recipes are versioned in [`config/datasets/zurich.json`](config/datasets/zurich.json).
-The setup harness stores downloaded and generated data under ignored local
-directories; the actual data files are not committed to this repository.
-
-| Data | Purpose | Local location |
+| Planning question | How EcoTwin helps | Practical benefit |
 | --- | --- | --- |
-| OpenStreetMap extract | Mapped buildings, roads, parks, and other features | `data/raw/osm/` |
-| ESA WorldCover 2021 | Land-cover class-area estimates | `data/raw/worldcover/` |
-| Zurich municipal tree register | Local mapped tree inventory where available | `data/raw/` |
-| Open-Meteo forecast | Hourly weather inputs for supported previews | `data/raw/weather/` |
-| Regional air forecast | Regional pollutant and greenhouse-gas context | `data/raw/air/` |
-| Source receipts and manifests | Licenses, source references, timestamps, hashes | `data/bootstrap/`, `data/manifests/` |
-| Processed scientific objects | Immutable imported source objects | `data/processed/` |
-| Map tiles, imagery, and fonts | Disposable on-demand map cache | `data/cache/maps/` |
-| PostGIS database | City geometry, revisions, and snapshots | Docker volume `pgdata` |
-| Optional Ollama weights | Locally downloaded model files | Docker volume `ollama_models` |
+| What might change if this tree or building is removed? | Compare supported vegetation, runoff, material, and roof-solar indicators under stated assumptions. | Make trade-offs visible and identify what a site survey must verify. |
+| Could a paved courtyard or parking area become greener? | Draw a bounded area and compare supported ground-cover changes and runoff screening. | Structure early discussions about landscaping and drainage investigations. |
+| Which roofs deserve a solar assessment? | Inspect mapped footprints and indicative solar opportunity using explicit usable-area and performance assumptions. | Shortlist buildings for installer and structural surveys. |
+| How can residents discuss redevelopment alternatives? | Share previews and reports with visible evidence and limitations. | Give stakeholders a common basis for discussing assumptions and missing data. |
+| Where should a campus or municipality collect better data? | Inspect coverage gaps and uncertain inputs. | Prioritize tree inventories, soil sampling, roof inspections, and source updates. |
 
-On-demand map tiles are cached as they are used; this is not a complete offline
-map archive. Initial downloads and newly requested map areas require internet
-access. The downloaded Zurich sample covers a bounded analysis area; the visual
-map may show a wider area than the validated scientific data. Coverage limits
-are shown in the app rather than extrapolated silently.
+These are potential workflows, not documented customer deployments. EcoTwin makes
+comparisons auditable, connects several environmental indicators in one interface,
+and helps teams decide what to measure next. It does not yet have measured evidence
+that its use has reduced emissions, flooding, planning costs, or health risks.
 
-Data providers have different licenses and terms. Check the source recipe and
-provider terms before redistributing datasets or using them commercially. In
-particular, OpenStreetMap data have ODbL attribution and share-alike obligations;
-ESA WorldCover is CC BY 4.0. See the [dataset guide](docs/DATASETS.md) for source
-details, registering another study area, manual imports, and provenance steps.
+## Architecture
 
-## How it works
-
-```text
-Web browser (Next.js, React, MapLibre)
-              │ same-origin API gateway
-              ▼
-FastAPI backend ───── PostGIS (city features, source revisions, snapshots)
-       │
-       ├── deterministic screening models and report export
-       ├── provider adapters for weather and regional air
-       └── verified object storage (local files in development, private S3 in AWS)
-
-Background worker ─── database queue locally / SQS in the AWS deployment
-Optional Ollama ───── local explanation of already-computed findings
+```mermaid
+flowchart TD
+    Browser[Web browser] -->|HTTPS| CDN[CloudFront]
+    CDN --> ALB[Application Load Balancer]
+    ALB --> Web[Next.js frontend on Fargate]
+    ALB --> API[FastAPI backend on Fargate]
+    Web -->|Private API gateway connection| API
+    API --> DB[(RDS PostgreSQL + PostGIS)]
+    API --> Objects[(Private S3 datasets and reports)]
+    API -->|Saved-scenario jobs| Queue[SQS + dead-letter queue]
+    Queue --> Worker[Worker on Fargate]
+    Worker --> DB
+    Worker --> Objects
+    Sources[OSM / WorldCover / municipal trees / forecasts] --> Ingest[Explicit ingestion task]
+    Ingest --> DB
+    Ingest --> Objects
+    Web -. Optional explanations .-> AI[Ollama service - not deployed]
 ```
 
-The web app is in `frontend/`; the Python API, models, ingestion tools, and worker
-are in `ecotwin/`; database migrations are in `migrations/`. `compose.yaml`
-defines the local services. The API exposes interactive documentation at
-[http://localhost:8000/docs](http://localhost:8000/docs) and health endpoints at
-`/livez` and `/readyz` while running.
+The frontend uses Next.js, React, and MapLibre for the map. FastAPI validates
+selections and runs bounded calculations. PostGIS handles spatial queries; S3
+retains source files and reports. The public planner uses read-only previews;
+the retained protected scenario workflow has a background worker and queue.
 
-## Scientific scope and limitations
+Docker builds separate backend and frontend `linux/amd64` images. They are pushed
+to ECR and deployed by immutable SHA256 digest. The backend image also supplies
+worker, migration, and ingestion tools. Terraform manages the AWS resources.
 
-EcoTwin combines mapped data with transparent, deterministic screening methods.
-Some features or indicators may be unavailable for a location if its data are
-missing or outside the published study coverage. Current models may include:
+### AWS services and their roles
 
-- **Land cover:** area changes by mapped WorldCover class; the 2021 land-cover
-  raster is not a current tree-by-tree inventory.
-- **Runoff:** event-volume screening using published curve-number methods and
-  explicit soil/cover assumptions. It does not calculate flood depth, drainage
-  routing, or storm-sewer capacity.
-- **Buildings and energy:** mapped footprint and roof-solar opportunity estimates
-  using stated assumptions. Roof tilt, shading, structure, and installed panels
-  are not necessarily known.
-- **Vegetation:** mapped canopy or tree indicators and literature-based biomass
-  proxies. These are not a local tree-health assessment or calibrated carbon
-  inventory.
-- **Weather and air:** forecast or regional context, not street-level sensors.
-  A regional concentration is not a predicted concentration change caused by an
-  intervention.
-- **Waste and demolition:** supported mass/energy balances and material proxies
-  where the required mapped or supplied inputs exist. Assumed values are labeled.
+| Service | Use in this deployment |
+| --- | --- |
+| CloudFront and Application Load Balancer | Provide the public HTTPS URL and route frontend/API requests. Application responses are not cached by CloudFront. |
+| ECS on Fargate and ECR | Run application containers and retain separate release images. |
+| RDS PostgreSQL with PostGIS | Store geometry, source revisions, published snapshots, and application/job records in a private encrypted database. |
+| S3 | Store verified raw/processed inputs, manifests, and reports in a private, encrypted, versioned bucket. |
+| SQS | Carry saved-scenario job messages; retain repeatedly failing messages in a dead-letter queue. |
+| Cognito, Secrets Manager, and IAM | Protect backend operations, supply separate database-role credentials, and limit service permissions. Public previews require no sign-in. |
+| VPC, security groups, NAT, and Cloud Map | Keep database/application tasks private, control access, allow provider downloads, and resolve the internal API address. |
+| CloudWatch, WAF, and EventBridge Scheduler | Collect logs/alarms, apply request-rate limits, and import weather every three hours. |
 
-The app does not claim to predict health outcomes, biodiversity change, street
-temperature or pollution deltas, flood depths, or river chemistry. See the
-[architecture and accuracy notes](docs/ARCHITECTURE.md) and
-[interactive preview methodology](docs/REMOVAL_PREVIEWS.md) for formulas, data
-coverage, and detailed assumptions.
+### Why these architectural choices
 
-## Development and verification
+- **Separate compute and persistent data:** Fargate disks are temporary. Source
+  files live in S3, while searchable spatial data live in RDS. Scientific datasets
+  stay outside Git and application images; the generated tree visualization asset
+  is included in the frontend image.
+- **Separate frontend, API, and worker:** interface delivery, preview requests,
+  and queued jobs have different resource and release needs. The services can
+  operate and scale independently.
+- **Versioned inputs and deterministic calculations:** immutable revisions and
+  captured forecast samples support repeatable reports. Refreshes create new
+  revisions rather than changing the evidence behind old results.
+- **Private service access:** the frontend reaches the API through private
+  discovery. The database and scientific bucket are inaccessible to anonymous
+  browser clients; separate database roles limit each service's write access.
+- **CloudFront without a custom domain:** AWS supplies the hostname and browser
+  TLS certificate. CloudFront-to-load-balancer traffic currently uses HTTP,
+  restricted by the CloudFront network prefix list and a secret origin header.
+  A custom domain with ACM is the path to TLS on both network legs.
 
-Use the Docker harness for a complete local experience. For code development,
-the backend targets Python 3.12 and uses `uv`; the frontend targets Node.js 22
-and uses the committed npm lockfile.
+## Data and current coverage
 
-```bash
-# Python dependencies and checks
-uv sync --frozen
-uv run ruff check .
-uv run ruff format --check ecotwin tests scripts migrations
-uv run mypy
-uv run pytest -q
+The Zurich study uses OpenStreetMap, ESA WorldCover 2021 v200, the municipal tree
+register, Open-Meteo weather, and regional CAMS/Open-Meteo air forecasts. At initial
+deployment it contained **18,866 mapped features, 57,600 land-cover cells, and
+4,398 municipal trees**, plus weather and air forecast samples.
 
-# Frontend checks
-cd frontend
-npm ci
-npm run api:check
-npm run lint
-npm run typecheck
-npm run test
-npm run build
-```
+The analysis boundary is `8.53,47.37,8.55,47.39`. The map can show a wider city,
+but that does not extend the scientific snapshot's coverage. Map tiles and imagery
+are fetched on demand and depend on external providers.
 
-PostGIS integration tests require a migrated test database and are opt-in. Do not
-point tests at production data. The GitHub Actions workflow runs backend, frontend,
-dependency, container-build, and Trivy security checks for pull requests and
-pushes to the `backend` branch.
+Download recipes are in [the dataset configuration](config/datasets/zurich.json).
+Source manifests preserve acquisition details, licenses, and content hashes.
+Licenses differ: OSM has ODbL attribution/share-alike obligations; WorldCover is
+CC BY 4.0. See [the dataset guide](docs/DATASETS.md) before redistributing data or
+using provider services commercially.
 
-To validate a downloaded report offline:
+## Optional Ollama explanations
 
-```bash
-uv run python scripts/replay_planning_report.py PATH_TO_EXPORTED_REPORT.json
-```
+Ollama can run a local or separately hosted language model to organize and rank
+findings already produced by EcoTwin. A restricted output format prevents it from
+changing calculated impacts or adding free-form numerical predictions.
 
-The replay checks report integrity and recalculates outputs from captured inputs;
-it does not validate that the inputs represent reality or establish who created
-the report. See [operations](docs/OPERATIONS.md) for the local test setup and
-release gates.
+**Ollama is not enabled on the current AWS deployment.** Maps, calculations, and
+exports work without it. An operator can connect a separately secured service;
+the supported default model is `qwen2.5:1.5b`. Ollama and its weights are separate
+from Python requirements and application images. See [the explanation documentation](docs/REMOVAL_PREVIEWS.md)
+for its behavior and configuration.
+
+## Limitations
+
+- **Early screening:** field verification and local professional assessment are
+  needed before engineering, permitting, or investment decisions.
+- **Incomplete and dated inputs:** mapped features may be missing or outdated;
+  WorldCover describes 2021 cover. Some energy, waste, soil, and vegetation inputs
+  are editable assumptions or literature proxies rather than site measurements.
+- **Model boundaries:** runoff screening does not predict flood depth or drainage
+  performance. Solar screening does not establish shading, roof strength, or
+  guaranteed yield. Vegetation proxies are not a calibrated local carbon inventory.
+- **Air and weather scale:** regional forecasts cannot establish intervention-caused
+  changes in street pollution, temperature, health, biodiversity, or river chemistry.
+- **Operational scope:** staging uses single-AZ RDS and seven-day backups.
+  Large-scale load tests, a cloud restore drill, and the authenticated saved-scenario
+  queue workflow were not part of deployment verification. Running AWS services
+  incur ongoing costs.
+- **Reproducibility has limits:** hashes and matching replay calculations establish
+  internal consistency, not the accuracy of source measurements.
+
+The deployed app passed four live browser tests covering map navigation, public
+access boundaries, municipal-tree selection, and custom-area planning/export.
+An exported report replayed successfully. These checks demonstrate working
+software, not local scientific calibration. [Architecture notes](docs/ARCHITECTURE.md)
+describe the detailed model and evidence boundaries.
+
+## Future scope
+
+Directions for future work include extending verified study coverage, calibrating
+proxies with local measurements, improving roof/shading and drainage inputs, and
+evaluating how the tool helps real planning teams.
+
+Operational improvements include a secured Ollama service, a custom domain with
+end-to-end TLS, production database resilience, load/queue testing, backup restore
+exercises, and cost tuning. Detailed heat, air-quality, biodiversity, or hydraulic
+models require suitable local data and independent validation before their outputs
+can be presented as supported predictions.
+
+The [AWS deployment record](docs/AWS_DEPLOYMENT_RECORD.md) contains the exact
+deployment process, release identifiers, and verification evidence.
+[The deployment guide](docs/DEPLOYMENT.md) covers infrastructure updates.
 
 ## License
 
-See [`LICENSE`](LICENSE). Dataset licensing and attribution are separate; consult
-the individual source terms before copying or redistributing data.
+See [LICENSE](LICENSE). Dataset and imagery licenses are separate from the code
+license; follow each provider's attribution and redistribution requirements.
