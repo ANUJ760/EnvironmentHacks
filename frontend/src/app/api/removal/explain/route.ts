@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerEnv } from '@/lib/env';
 import type { RemovalReport, Finding } from '@/lib/removal';
+import type { PlanningReport } from '@/lib/planning';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -28,7 +29,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  let body: { cityId: string; request: unknown };
+  let body: { cityId: string; request: unknown; mode?: string };
   try {
     const text = await req.text();
     if (text.length > 300000) throw new Error('Request too large');
@@ -43,16 +44,17 @@ export async function POST(req: Request) {
     const env = getServerEnv();
     // Recompute from the validated backend. Never trust a browser-supplied report
     // or feed OSM names/free-form prompt text to the model.
-    const calculation = await fetch(`${env.ECOTWIN_API_INTERNAL_URL}/v1/cities/${body.cityId}/removal-preview`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body.request), signal: AbortSignal.timeout(15000) });
+    const endpoint = body.mode === 'planning' ? 'planning-preview' : 'removal-preview';
+    const calculation = await fetch(`${env.ECOTWIN_API_INTERNAL_URL}/v1/cities/${body.cityId}/${endpoint}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body.request), signal: AbortSignal.timeout(25000) });
     if (!calculation.ok) return NextResponse.json({ detail: 'Calculate a valid removal preview before requesting an explanation.' }, { status: calculation.status });
-    const report: RemovalReport = await calculation.json();
+    const report: RemovalReport | PlanningReport = await calculation.json();
     const findings = report.findings as unknown as Finding[];
     const ids = findings.map(finding => finding.id);
     const schema = { type: 'object', additionalProperties: false, properties: { heading: { type: 'string', enum: ['overview', 'tradeoffs', 'uncertainty'] }, finding_ids: { type: 'array', minItems: 1, maxItems: 4, uniqueItems: true, items: { type: 'string', enum: ids } } }, required: ['heading', 'finding_ids'] };
     const model = await localModel();
     const generation = await fetch(`${ollamaUrl()}/api/generate`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(45000),
-      body: JSON.stringify({ model, stream: false, think: false, keep_alive: '2m', format: schema, options: { temperature: 0, num_predict: 120, num_ctx: 2048, num_thread: 4 }, system: 'You organize environmental screening findings. Select and rank up to four of the supplied finding IDs for a clear explanation of this removal. Use only IDs and headings allowed by the JSON schema. You do not calculate, invent facts, or add quantitative claims.', prompt: JSON.stringify({ kind: report.kind, inputs: report.inputs, metrics: report.metrics.map(metric => ({ key: metric.key, delta: metric.delta, unit: metric.unit, evidence: metric.evidence })), findings, schema }) }),
+      body: JSON.stringify({ model, stream: false, think: false, keep_alive: '2m', format: schema, options: { temperature: 0, num_predict: 120, num_ctx: 2048, num_thread: 4 }, system: 'You organize environmental screening findings. Select and rank up to four of the supplied finding IDs for a clear explanation of this removal. Use only IDs and headings allowed by the JSON schema. You do not calculate, invent facts, or add quantitative claims.', prompt: JSON.stringify({ kind: 'kind' in report ? report.kind : report.inputs.selection_type, inputs: report.inputs, metrics: report.metrics.map(metric => ({ key: metric.key, delta: metric.delta, unit: metric.unit, evidence: metric.evidence })), findings, schema }) }),
     });
     if (!generation.ok) throw new Error('Local generation failed');
     const raw = await generation.json();

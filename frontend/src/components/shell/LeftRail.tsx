@@ -27,11 +27,11 @@ export function LeftRail({ cityId, cityName, isSimulatePage = false }: LeftRailP
 
   return (
     <aside
-      className="w-72 border-r border-border bg-white flex flex-col shrink-0 overflow-y-auto"
+      className="layer-rail w-56 border-r border-slate-800 bg-background flex flex-col shrink-0 overflow-y-auto"
       aria-label="Layer and intervention controls"
     >
-      <div className="p-4 border-b border-border">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">Study Area</h2>
+      <div className="p-4 border-b border-slate-800">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">Planning workspace</h2>
         <p className="text-base font-bold text-ink truncate mt-0.5">{cityName || 'Overview'}</p>
 
         {cityId && !isSimulatePage && (
@@ -40,7 +40,7 @@ export function LeftRail({ cityId, cityName, isSimulatePage = false }: LeftRailP
             className="mt-3 w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold py-2 px-3 rounded-lg shadow-sm transition-colors"
           >
             <Play className="w-3.5 h-3.5 fill-current" />
-            Launch Scenario Lab
+            Saved scenario lab
           </Link>
         )}
       </div>
@@ -49,7 +49,7 @@ export function LeftRail({ cityId, cityName, isSimulatePage = false }: LeftRailP
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted flex items-center gap-1.5">
             <Layers className="w-3.5 h-3.5 text-primary" />
-            Environmental Layers
+            Map layers
           </h3>
         </div>
 
@@ -63,8 +63,8 @@ export function LeftRail({ cityId, cityName, isSimulatePage = false }: LeftRailP
                 onClick={() => toggleLayer(layer.id)}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors border ${
                   layer.active
-                    ? 'bg-slate-50 border-slate-200 text-ink'
-                    : 'bg-white border-transparent text-slate-400 hover:bg-slate-50'
+                    ? 'bg-sky-100 border-sky-200 text-ink'
+                    : 'bg-white border-transparent text-slate-500 hover:bg-slate-50'
                 }`}
                 aria-pressed={layer.active}
               >

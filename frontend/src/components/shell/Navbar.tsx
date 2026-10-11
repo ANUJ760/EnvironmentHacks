@@ -17,7 +17,7 @@ export function Navbar() {
   ];
 
   return (
-    <header className="h-14 border-b border-border bg-white/95 backdrop-blur px-4 md:px-6 flex items-center justify-between sticky top-0 z-30">
+    <header className="h-16 border-b border-slate-800 bg-background px-4 md:px-6 flex items-center justify-between sticky top-0 z-30">
       <div className="flex items-center gap-6">
         <Link href="/" className="flex items-center gap-2 font-bold text-lg text-ink">
           {/* Logo */}
@@ -40,7 +40,7 @@ export function Navbar() {
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors ${
                   isActive
                     ? 'bg-primary-light text-primary font-semibold'
-                    : 'text-slate-600 hover:text-ink hover:bg-slate-100'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800'
                 }`}
               >
                 <Icon className="w-4 h-4" />

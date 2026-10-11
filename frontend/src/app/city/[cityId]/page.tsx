@@ -43,7 +43,7 @@ export default function CityViewerPage({ params }: { params: Promise<{ cityId: s
   }
 
   return (
-    <div className="flex-1 flex overflow-hidden">
+    <div className="city-workspace flex-1 flex overflow-hidden">
       {/* Left Layer Rail */}
       <LeftRail cityId={cityId} cityName={city.display_name} />
 

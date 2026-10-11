@@ -12,7 +12,7 @@ export function cityVisualConfig(slug: string, boundary: any) {
     zurich,
     center: zurich ? [8.5417, 47.3739] as [number, number] : [(bbox.minLon + bbox.maxLon) / 2, (bbox.minLat + bbox.maxLat) / 2] as [number, number],
     bounds: zurich ? ZURICH_BOUNDS : [bbox.minLon, bbox.minLat, bbox.maxLon, bbox.maxLat] as [number, number, number, number],
-    treesUrl: zurich ? '/maps/zurich-trees.geojson' : null,
+    treesUrl: zurich ? `${(process.env.NEXT_PUBLIC_MAP_ASSET_BASE_URL || '').replace(/\/$/, '')}/maps/zurich-trees.geojson` : null,
   };
 }
 
@@ -33,6 +33,7 @@ export function createCityStyle(zurich: boolean): StyleSpecification {
       selection: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       interventions: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       removal: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
+      drawing: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       trees: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, maxzoom: 16, cluster: true, clusterMaxZoom: 14, clusterRadius: 30 },
     },
     layers: [
@@ -65,6 +66,9 @@ export function createCityStyle(zurich: boolean): StyleSpecification {
       { id: 'intervention-edge', type: 'line', source: 'interventions', paint: { 'line-color': '#174e42', 'line-width': 2.5, 'line-dasharray': [2, 1] } },
       { id: 'selection-fill', type: 'fill', source: 'selection', paint: { 'fill-color': '#ffd686', 'fill-opacity': 0.3 } },
       { id: 'selection-edge', type: 'line', source: 'selection', paint: { 'line-color': '#ec9f43', 'line-width': 3 } },
+      { id: 'drawing-fill', type: 'fill', source: 'drawing', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': '#38bdf8', 'fill-opacity': 0.22 } },
+      { id: 'drawing-line', type: 'line', source: 'drawing', filter: ['==', ['geometry-type'], 'LineString'], paint: { 'line-color': '#0284c7', 'line-width': 3, 'line-dasharray': [2, 1] } },
+      { id: 'drawing-points', type: 'circle', source: 'drawing', filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-color': '#0284c7', 'circle-radius': 5, 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 } },
       { id: 'neighborhood-labels', type: 'symbol', source: 'city', 'source-layer': 'place', minzoom: 10, maxzoom: 16, layout: { 'text-field': ['coalesce', ['get', 'name:en'], ['get', 'name']], 'text-font': ['Noto Sans Regular'], 'text-size': ['interpolate', ['linear'], ['zoom'], 10, 12, 15, 15], 'text-max-width': 8 }, paint: { 'text-color': '#5d6450', 'text-halo-color': '#f6f4df', 'text-halo-width': 2 } },
       { id: 'street-labels', type: 'symbol', source: 'city', 'source-layer': 'transportation_name', minzoom: 16, layout: { 'symbol-placement': 'line', 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 10 }, paint: { 'text-color': '#7a735f', 'text-halo-color': '#fff8e7', 'text-halo-width': 1.5 } },
     ],

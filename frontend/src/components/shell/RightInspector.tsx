@@ -5,17 +5,17 @@ import { Info, MapPin, Wind, CloudSun, Layers, Database, X } from 'lucide-react'
 import { useScenarioStore } from '@/stores/scenarioStore';
 import { useLandcover, useWeather, useAir, useDatasets } from '@/hooks/useCityData';
 import { WORLDCOVER_CLASSES } from '@/lib/scenarios';
-import { RemovalPanel } from '@/components/map/RemovalPanel';
-import { removableKind } from '@/lib/removal';
+import { PlanningPanel } from '@/components/map/PlanningPanel';
+import { planningKind } from '@/lib/planning';
 
 interface RightInspectorProps {
   cityId?: string;
 }
 
 export function RightInspector({ cityId }: RightInspectorProps) {
-  const [activeTab, setActiveTab] = useState<'inspect' | 'removal' | 'environment' | 'sources'>('inspect');
+  const [activeTab, setActiveTab] = useState<'inspect' | 'removal' | 'environment' | 'sources'>('removal');
   const { selectedFeature, setSelectedFeature } = useScenarioStore();
-  useEffect(() => { if (removableKind(selectedFeature)) setActiveTab('removal'); }, [selectedFeature]);
+  useEffect(() => { if (planningKind(selectedFeature)) setActiveTab('removal'); }, [selectedFeature]);
 
   const { data: landcover } = useLandcover(cityId);
   const { data: weather } = useWeather(cityId);
@@ -24,10 +24,10 @@ export function RightInspector({ cityId }: RightInspectorProps) {
 
   return (
     <aside
-      className="w-80 border-l border-border bg-white flex flex-col shrink-0 overflow-y-auto"
+      className="planning-inspector border-l border-slate-800 bg-background flex flex-col shrink-0 overflow-y-auto"
       aria-label="Contextual Inspector"
     >
-      <div className="flex border-b border-border bg-slate-50 text-xs font-semibold">
+      <div className="flex border-b border-border bg-sky-100 text-xs font-semibold">
         <button type="button" onClick={() => setActiveTab('removal')} className={`flex-1 py-2.5 px-2 border-b-2 text-[11px] ${activeTab === 'removal' ? 'border-primary text-primary bg-white' : 'border-transparent text-muted'}`}>Impact</button>
         <button
           type="button"
@@ -68,7 +68,7 @@ export function RightInspector({ cityId }: RightInspectorProps) {
       </div>
 
       <div className="p-4 flex-1 text-xs space-y-4">
-        {activeTab === 'removal' && cityId && <RemovalPanel cityId={cityId} key={JSON.stringify([selectedFeature?.geometry, selectedFeature?.properties?.clicked_location])} />}
+        {activeTab === 'removal' && cityId && <PlanningPanel cityId={cityId} key={JSON.stringify([selectedFeature?.geometry, selectedFeature?.properties?.clicked_location])} />}
         {/* Tab 1: Feature Inspector */}
         {activeTab === 'inspect' && (
           <div>

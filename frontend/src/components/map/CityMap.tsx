@@ -1,16 +1,19 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { Map as LibreMap, GeoJSONSource } from 'maplibre-gl';
 import type { FeatureCollection, Geometry } from 'geojson';
-import { Building2, CloudSun, Focus, Globe2, Layers3, MapPin, Minus, Plus, RotateCcw, Satellite, Wind } from 'lucide-react';
+import { Building2, Check, CloudSun, Focus, Globe2, Layers3, MapPin, Minus, Plus, RotateCcw, Satellite, Scan, Wind, X } from 'lucide-react';
 import { cityVisualConfig, createCityStyle, CITY_LAYER_GROUPS, type CityViewMode } from '@/lib/rendering/city-style';
 import { useLayerStore } from '@/stores/layerStore';
 import { useScenarioStore } from '@/stores/scenarioStore';
 import { useRemovalStore } from '@/stores/removalStore';
+import { usePlanningStore } from '@/stores/planningStore';
 import { useAir, useLandcover, useWeather } from '@/hooks/useCityData';
 import { computeBBoxFromGeometry, isPointInPolygon } from '@/lib/geo';
 import { WORLDCOVER_CLASSES } from '@/lib/scenarios';
+import { fetchGateway } from '@/lib/api/browser-client';
 
 interface CityMapProps {
   cityId: string;
@@ -56,7 +59,13 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
   const { selectedFeature, setSelectedFeature, edits } = useScenarioStore();
   const removalPreview = useRemovalStore(state => state.preview);
   const showingAfter = useRemovalStore(state => state.showingAfter);
-  const { data: weather } = useWeather(cityId);
+  const { drawing, points, setDrawing, resetDrawing } = usePlanningStore();
+  const { data: pinnedWeather } = useWeather(cityId);
+  const { data: environment } = useQuery<{ weather: NonNullable<typeof pinnedWeather> & { source: string } }>({
+    queryKey: ['environment-baseline', cityId], queryFn: async ({ signal }) => (await fetchGateway<{ weather: NonNullable<typeof pinnedWeather> & { source: string } }>(`/api/gateway/v1/cities/${cityId}/environment-baseline`, { signal })).data,
+    staleTime: 300000, refetchInterval: 300000, retry: 1,
+  });
+  const weather = environment?.weather.series.length ? environment.weather : pinnedWeather;
   const { data: landcover } = useLandcover(cityId);
   const { data: air } = useAir(cityId);
   const config = useMemo(() => cityVisualConfig(citySlug, boundary), [citySlug, boundary]);
@@ -146,9 +155,19 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
         }, 120);
       });
       map.on('click', event => {
+        if (usePlanningStore.getState().drawing) {
+          usePlanningStore.getState().addPoint([event.lngLat.lng, event.lngLat.lat]);
+          return;
+        }
         const hitLayers = ['tree-canopies', 'building-roofs', 'aerial-building-hit', 'parks', 'water', 'roads', 'air-stations'].filter(id => map.getLayer(id));
         const hit = map.queryRenderedFeatures(event.point, { layers: hitLayers })[0];
-        if (!hit) { useRemovalStore.getState().setPreview(null); setSelectedFeature(null); return; }
+        if (!hit) {
+          const lon = event.lngLat.lng, lat = event.lngLat.lat;
+          const dy = 20 / 111320, dx = dy / Math.cos(lat * Math.PI / 180);
+          useRemovalStore.getState().setPreview(null);
+          setSelectedFeature({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [[[lon-dx, lat-dy], [lon+dx, lat-dy], [lon+dx, lat+dy], [lon-dx, lat+dy], [lon-dx, lat-dy]]] }, properties: { category: 'area', name: 'Ground selection (~40 m)', source: 'User-selected ground; classified from published data', clicked_location: [lon, lat] } });
+          return;
+        }
         const category = hit.layer.id === 'tree-canopies' ? 'mapped_tree' : ['building-roofs', 'aerial-building-hit'].includes(hit.layer.id) ? 'building' : hit.layer.id === 'parks' ? 'park' : hit.layer.id === 'water' ? 'water' : hit.layer.id === 'air-stations' ? 'air_station' : 'road';
         let geometry = hit.geometry;
         if (geometry.type === 'MultiPolygon') {
@@ -160,6 +179,7 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
       });
       map.on('mousemove', event => {
         const now = performance.now();
+        if (usePlanningStore.getState().drawing) { map.getCanvas().style.cursor = 'crosshair'; return; }
         if (now - lastHoverAt < 50 || map.isMoving()) return;
         lastHoverAt = now;
         if (!map.isStyleLoaded()) return;
@@ -177,10 +197,27 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
       mapRef.current?.remove();
       mapRef.current = null;
       useRemovalStore.getState().setPreview(null);
+      usePlanningStore.getState().resetDrawing();
     };
   }, [config, boundary, setSelectedFeature]);
 
   useEffect(() => { if (readyMap) applyVisibility(readyMap, layers, mode); }, [readyMap, layers, mode]);
+
+  useEffect(() => {
+    if (!readyMap) return;
+    if (drawing) readyMap.doubleClickZoom.disable(); else readyMap.doubleClickZoom.enable();
+    const features: FeatureCollection['features'] = points.map(point => ({ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: point } }));
+    if (points.length >= 2) features.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: points } });
+    if (points.length >= 3) features.push({ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[...points, points[0]!]] } });
+    setSource(readyMap, 'drawing', { type: 'FeatureCollection', features });
+  }, [readyMap, drawing, points]);
+
+  function finishArea() {
+    if (points.length < 3) return;
+    useRemovalStore.getState().setPreview(null);
+    setSelectedFeature({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [[...points, points[0]]] }, properties: { category: 'area', name: 'Custom planning area', source: 'User polygon intersected with published city datasets', clicked_location: points[0] } });
+    resetDrawing();
+  }
 
   useEffect(() => {
     if (!readyMap) return;
@@ -229,11 +266,10 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
       )}
 
       <div className="absolute top-5 left-5 right-5 z-10 flex items-start justify-between gap-3 pointer-events-none">
-        <div className="city-map-panel pointer-events-auto rounded-2xl p-4 max-w-[290px]">
-          <div className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-[0.18em] text-[#6f8265]"><span className="w-1.5 h-1.5 rounded-full bg-[#51976c]" /> A living city, illustrated</div>
-          <h2 className="mt-1 text-xl font-bold tracking-tight text-[#344732]">{config.zurich ? 'Zurich' : cityName}</h2>
-          <p className="mt-1 text-[11px] leading-relaxed text-[#7a826b]">{config.zurich ? 'Explore the whole city, one neighborhood at a time.' : 'Explore real city footprints in a new perspective.'}</p>
-          <div className="flex gap-1 mt-3 bg-[#eeeede] rounded-xl p-1">
+        <div className="city-map-panel pointer-events-auto rounded-2xl p-4 w-[300px] max-w-[55%]">
+          <div className="flex items-center gap-2 text-xs font-semibold text-primary">City planning · lightweight 2D</div>
+          <h2 className="mt-1 text-2xl font-bold tracking-tight text-ink">{config.zurich ? 'Zurich' : cityName}</h2>
+          <div className="flex gap-1 mt-3 bg-sky-50 rounded-xl p-1">
             <button onClick={() => changeMode('illustrated')} aria-pressed={mode === 'illustrated'} className={`flex-1 city-view-button ${mode === 'illustrated' ? 'city-view-button-active' : ''}`}><Layers3 size={13} /> Illustrated 2D</button>
             {config.zurich && <button onClick={() => changeMode('imagery')} aria-pressed={mode === 'imagery'} className={`flex-1 city-view-button ${mode === 'imagery' ? 'city-view-button-active' : ''}`}><Satellite size={13} /> Aerial</button>}
           </div>
@@ -241,9 +277,13 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
         {layers.weather && <div className="city-map-panel pointer-events-auto rounded-2xl p-3 w-[170px]">
           <div className="flex items-center justify-between"><CloudSun size={21} className="text-[#d3a95c]" /><span className="text-xl font-semibold text-[#344732]">{currentWeather?.temperature_c != null ? `${Math.round(currentWeather.temperature_c)}°` : '—'}</span></div>
           <p className="mt-1 text-[11px] font-semibold text-[#5a6e4e]">{currentWeather ? wet ? 'Rainy skies' : night ? 'Evening light' : 'Daylight' : 'Weather unavailable'}</p>
-          {currentWeather && <><div className="mt-2 flex gap-3 text-[10px] text-[#7c8670]"><span className="flex items-center gap-1"><Wind size={11} />{currentWeather.wind_mps?.toFixed(1) ?? '—'} m/s</span><span>{precipitation.toFixed(1)} mm</span></div><p className="text-[9px] text-[#8b927d] mt-2">Pinned forecast · {new Date(currentWeather.valid_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}{weather?.stale ? ' · stale' : ''}</p></>}
+          {currentWeather && <><div className="mt-2 flex gap-3 text-xs text-muted"><span className="flex items-center gap-1"><Wind size={13} />{currentWeather.wind_mps?.toFixed(1) ?? '—'} m/s</span><span>{precipitation.toFixed(1)} mm</span></div><p className="text-xs text-muted mt-2">{environment?.weather.source === 'live_forecast' ? 'Live forecast' : 'Pinned forecast'} · {new Date(currentWeather.valid_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}{weather?.stale ? ' · stale' : ''}</p></>}
           <button onClick={() => setWeatherEffects(!weatherEffects)} className="mt-2 text-[10px] text-[#5a785b] underline underline-offset-2" aria-pressed={weatherEffects}>Atmosphere {weatherEffects ? 'on' : 'off'}</button>
         </div>}
+      </div>
+
+      <div className="absolute top-[230px] right-5 z-10 city-map-panel rounded-xl p-2 flex items-center gap-2 text-sm" role="toolbar" aria-label="Custom area selection">
+        {!drawing ? <><button className="flex items-center gap-2 rounded-lg bg-primary text-white px-3 py-2 font-semibold" onClick={() => { setSelectedFeature(null); setDrawing(true); }}><Scan size={17} />Draw area</button><button className="city-nav-button" aria-label="Clear selection" onClick={() => setSelectedFeature(null)}><X size={17} /></button></> : <><span className="px-2 text-muted">{points.length} points</span><button disabled={points.length < 3} className="flex items-center gap-1 bg-primary text-white rounded-lg px-3 py-2 disabled:opacity-40" onClick={finishArea}><Check size={16} />Finish area</button><button className="city-nav-button" aria-label="Cancel drawing" onClick={resetDrawing}><X size={17} /></button></>}
       </div>
 
       <div className="absolute left-5 top-[205px] z-10 city-map-panel rounded-2xl p-1.5 flex flex-col gap-1" role="toolbar" aria-label="City map navigation">
@@ -257,11 +297,10 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
       </div>
 
       <div className="absolute bottom-6 left-5 z-10 city-map-panel rounded-2xl px-4 py-3 text-[11px] max-w-[330px]">
-        <div className="flex items-center gap-2 text-[#5a6f51] font-semibold"><MapPin size={13} /> {isScenario ? 'Scenario workspace' : 'Real geography. Playful perspective.'}</div>
-        <p className="text-[10px] text-[#8a917c] mt-1">Drag to explore · scroll to zoom · click a building to inspect</p>
-        <p className="text-[10px] text-[#5d7953] mt-1">Click trees, parks or roads to explore removal consequences.</p>
+        <div className="flex items-center gap-2 text-primary font-semibold"><MapPin size={15} /> {isScenario ? 'Scenario workspace' : 'Click anywhere. Compare the change.'}</div>
+        <p className="text-xs text-muted mt-1">{drawing ? 'Click 3+ boundary points, then Finish area.' : 'Features or custom areas · same-weather comparison'}</p>
         <div className="flex gap-4 mt-2.5 pt-2.5 border-t border-[#e5e7d8] text-[#6f7e61]"><span className="flex items-center gap-1.5"><Building2 size={12} />{mode === 'imagery' ? 'Aerial imagery' : `${buildingCount.toLocaleString()} visible buildings`}</span>{layers.landcover && canopy != null && <span>{canopy.toFixed(0)}% study-area tree cover</span>}</div>
-        <p className="text-[9px] mt-2 text-[#959b87]">Dashed outline: verified analysis area. Forecast and WorldCover apply there. Roof colors and textures are illustrative.</p>
+        <p className="text-xs mt-2 text-muted">Dashed boundary = verified data coverage</p>
       </div>
       {zoom < 13 && mode === 'illustrated' && <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 city-map-panel px-3 py-2 rounded-xl text-[11px] text-[#5d7150]">Zoom in to explore buildings and street details</div>}
       {(loading || error || (imageryError && mode === 'imagery')) && <div role="status" className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 city-map-panel rounded-2xl px-5 py-4 max-w-sm text-sm text-[#5a6f51]">{error || (imageryError && mode === 'imagery' ? 'Aerial imagery is temporarily unavailable. Illustrated 2D remains available.' : <span className="flex items-center gap-3"><span className="w-4 h-4 rounded-full border-2 border-[#a5b996] border-t-[#538169] animate-spin" /> Bringing the city into view…</span>)}</div>}

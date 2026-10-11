@@ -9,29 +9,33 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: '#F6F8F4',
-        ink: '#172A24',
+        background: '#080b10',
+        ink: 'var(--ink)',
         primary: {
-          DEFAULT: '#0C8055',
-          hover: '#096342',
-          light: '#E2F3EB',
+          DEFAULT: '#0369a1',
+          hover: '#075985',
+          light: '#e0f2fe',
         },
         forest: {
-          DEFAULT: '#173F33',
-          dark: '#0F2921',
+          DEFAULT: '#082f49',
+          dark: '#071923',
         },
         accent: {
-          DEFAULT: '#2F9E81',
-          light: '#E6F6F2',
+          DEFAULT: '#0284c7',
+          light: '#e0f2fe',
         },
-        border: '#D8E5DD',
+        border: '#cbd5e1',
         warning: {
           DEFAULT: '#B56B1F',
           light: '#FEF3E7',
         },
-        muted: '#526E64',
+        muted: 'var(--muted)',
         surface: '#FFFFFF',
         'surface-elevated': '#FFFFFF',
+      },
+      fontSize: {
+        xs: ['0.875rem', '1.35rem'],
+        sm: ['0.9375rem', '1.5rem'],
       },
       fontFamily: {
         sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
