@@ -11,6 +11,7 @@ FROM python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0
 ARG GIT_REVISION=unknown
 ARG BUILD_TIMESTAMP=unknown
 LABEL org.opencontainers.image.revision=$GIT_REVISION org.opencontainers.image.created=$BUILD_TIMESTAMP
+RUN apt-get update && apt-get install -y --no-install-recommends libexpat1 && rm -rf /var/lib/apt/lists/*
 RUN groupadd --gid 10001 ecotwin && useradd --uid 10001 --gid 10001 --create-home ecotwin && mkdir -p /app/cache && chown 10001:10001 /app/cache
 WORKDIR /app
 ENV PATH="/app/.venv/bin:$PATH" PYTHONPATH=/app PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1

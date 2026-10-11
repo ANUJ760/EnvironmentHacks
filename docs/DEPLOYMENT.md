@@ -115,8 +115,8 @@ image pushes, or one-off paid tasks. They do not call `terraform apply`.
 4. Optional reproducible seed transfer (bucket name comes from Terraform outputs):
 
    ```bash
-   uv run python scripts/dataset_bundle.py --bucket YOUR_DATASET_BUCKET
-   uv run python scripts/dataset_bundle.py --bucket YOUR_DATASET_BUCKET --apply
+   uv run python scripts/dataset_bundle.py upload --bucket YOUR_DATASET_BUCKET
+   uv run python scripts/dataset_bundle.py upload --bucket YOUR_DATASET_BUCKET --apply
    ```
 
    This prints an immutable `manifests/bundles/HASH.json` index. It transfers raw

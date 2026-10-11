@@ -15,7 +15,9 @@ current_import_run = ContextVar("current_import_run", default=None)
 
 SOURCES = {
     "municipal_trees": (
-        "City of Zurich", "CC0-1.0", "Grün Stadt Zürich · Baumkataster",
+        "City of Zurich",
+        "CC0-1.0",
+        "Grün Stadt Zürich · Baumkataster",
         "https://data.stadt-zuerich.ch/dataset/geo_baumkataster",
     ),
     "air_forecast": (

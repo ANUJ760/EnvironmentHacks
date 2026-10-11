@@ -11,4 +11,6 @@ if not Path(".env").exists():
     )
     Path(".env").write_text(document)
     Path(".env").chmod(0o600)
-print("Local .env is ready. Keep it untracked; run python3 scripts/local.py up to download/import datasets.")
+print(
+    "Local .env is ready. Keep it untracked; run python3 scripts/local.py up to download/import datasets."
+)
