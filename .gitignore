@@ -21,6 +21,9 @@ data/raw/**
 data/processed/**
 data/bootstrap/**
 data/cache/**
+data/manifests/*.json
+!data/manifests/dataset.schema.json
+!data/manifests/waste-input.schema.json
 frontend/public/maps/*.geojson
 !data/processed/**/
 !data/processed/**/.gitkeep

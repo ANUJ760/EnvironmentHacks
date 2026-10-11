@@ -1,4 +1,13 @@
-# Real datasets: operator download checklist
+# Automatic clone-to-run setup
+
+Run `python3 scripts/local.py up` for registered Zurich inputs, database import,
+snapshot publication and frontend startup. Run `python3 scripts/local.py download`
+for downloads only. The recipe is `config/datasets/zurich.json`; no data bytes are
+committed. On-demand tiles/imagery/fonts are automatically cached separately.
+See [deployment and storage](DEPLOYMENT.md) for optional sources and AWS transfer.
+Manual instructions below remain useful for operator-supplied studies.
+
+## Real datasets: operator download checklist
 
 No real city dataset is included. `data/raw/` and `data/processed/` are deliberately
 empty and ignored by Git. Never place confidential or restricted data in a commit.

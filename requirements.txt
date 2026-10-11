@@ -2,6 +2,7 @@
 # Python runtime only. Use Python 3.12; install the project with pip install --no-deps -e .
 # Ollama is the optional pinned Docker service/profile ai in compose.yaml, not a Python dependency.
 # Frontend dependencies (Node 22) are pinned separately in frontend/package-lock.json.
+# Native osmium also requires OS libexpat (libexpat1 on Debian), installed in Dockerfile.
 #    uv export --frozen --no-dev --no-emit-project --format requirements-txt --output-file requirements.txt
 affine==3.0.1 \
     --hash=sha256:cda3b303325e7bf2bf34817e68753a0d1c4cacbdd451fe67c4878dc2ecbaa540 \

@@ -9,7 +9,8 @@ let busy = false;
 
 function ollamaUrl() {
   const url = new URL(process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434');
-  if (!['localhost', '127.0.0.1', 'host.docker.internal', 'ollama'].includes(url.hostname) || !['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error('Use a configured local Ollama service');
+  const allowed = ['localhost', '127.0.0.1', 'host.docker.internal', 'ollama', ...(process.env.OLLAMA_ALLOWED_HOSTS || '').split(',').map(host => host.trim()).filter(Boolean)];
+  if (!allowed.includes(url.hostname) || !['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error('Use an explicitly allowlisted Ollama service');
   return url.origin;
 }
 

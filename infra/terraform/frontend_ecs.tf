@@ -58,7 +58,9 @@ resource "aws_ecs_task_definition" "frontend" {
         { name = "APP_BASE_URL", value = "https://${var.domain_name}" },
         { name = "ECOTWIN_API_INTERNAL_URL", value = "http://api.${aws_service_discovery_private_dns_namespace.internal.name}:8000" },
         { name = "MAP_CACHE_DIR", value = "/tmp/ecotwin-map-cache" },
-        { name = "OLLAMA_BASE_URL", value = "http://localhost:11434" },
+        { name = "OLLAMA_BASE_URL", value = var.ollama_base_url },
+        { name = "OLLAMA_ALLOWED_HOSTS", value = join(",", var.ollama_allowed_hosts) },
+        { name = "OLLAMA_MODEL", value = var.ollama_model },
         { name = "NEXT_PUBLIC_APP_LABEL", value = "EcoTwin" }
       ]
 

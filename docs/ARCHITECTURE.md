@@ -52,6 +52,13 @@ Retained internal saved-scenario API → database/SQS queue → worker → store
 Optional Ollama → ranks existing verified findings only; never computes impacts
 ```
 
+`scripts/local.py` now orchestrates automatic source downloads, migrations,
+idempotent ingestion, snapshot publication and image startup. The same backend
+image includes the bootstrap tools for one-off AWS ingestion. The restricted
+same-origin map proxy persists on-demand imagery/vector/glyph bytes separately
+from scientific inputs. See [local/AWS deployment](DEPLOYMENT.md) for folder,
+private S3, RDS, Cloud Map and dual-image release contracts.
+
 Key files: `ecotwin/models/planning.py`, `ecotwin/api/routes/planning.py`,
 `ecotwin/ingestion/air_forecast.py`, `ecotwin/storage/`,
 `frontend/src/components/map/PlanningPanel.tsx`, `CityMap.tsx`.

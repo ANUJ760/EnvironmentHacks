@@ -84,6 +84,7 @@ services:
       MAP_CACHE_DIR: /app/map-cache
     volumes:
       - ${ECOTWIN_DATA_PATH:-./data}/cache/maps:/app/map-cache:rw
+      - ${ECOTWIN_MAPS_PATH:-./frontend/public/maps}:/app/public/maps:ro
     depends_on:
       api: {condition: service_healthy}
     healthcheck:

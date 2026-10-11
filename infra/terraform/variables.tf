@@ -83,3 +83,26 @@ variable "enable_tasks" {
   type    = bool
   default = false
 }
+
+variable "ollama_base_url" {
+  type        = string
+  default     = "http://localhost:11434"
+  description = "Optional operator-managed internal Ollama endpoint; no service is provisioned."
+  validation {
+    condition     = can(regex("^https?://[A-Za-z0-9.-]+(:[0-9]+)?/?$", var.ollama_base_url))
+    error_message = "Use an HTTP(S) origin without credentials, paths or query strings."
+  }
+}
+variable "ollama_allowed_hosts" {
+  type        = list(string)
+  default     = []
+  description = "Explicit additional trusted internal inference hostnames; never browser-controlled."
+  validation {
+    condition     = alltrue([for host in var.ollama_allowed_hosts : can(regex("^[A-Za-z0-9.-]+$", host))])
+    error_message = "Allowlist entries must be hostnames, not URLs."
+  }
+}
+variable "ollama_model" {
+  type    = string
+  default = "qwen2.5:1.5b"
+}

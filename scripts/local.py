@@ -28,8 +28,8 @@ def main():
         subprocess.run(command, cwd=ROOT, env=env, check=True)
 
     run(sys.executable, str(ROOT / "scripts/setup_local.py"))
-    data = Path(env.get("ECOTWIN_DATA_PATH", ROOT / "data")).resolve()
-    maps = Path(env.get("ECOTWIN_MAPS_PATH", ROOT / "frontend/public/maps")).resolve()
+    data = (ROOT / env.get("ECOTWIN_DATA_PATH", "data")).resolve()
+    maps = (ROOT / env.get("ECOTWIN_MAPS_PATH", "frontend/public/maps")).resolve()
     for path in [data, maps, data / "cache/maps"]:
         path.mkdir(parents=True, exist_ok=True)
     (data / "cache/maps").chmod(

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.use({ viewport: { width: 1680, height: 1080 } });
 
-test('published OSM features provide bounded, research-backed removal reports for all four types', async ({ request }) => {
+test('published mapped features provide bounded, research-backed removal reports for all four types', async ({ request }) => {
   test.skip(process.env.RUN_LIVE_MAP_TESTS !== '1', 'Requires the imported Zurich snapshot and running backend.');
   const cities = await (await request.get('/api/gateway/v1/cities')).json();
   const city = cities.find((candidate: { slug: string }) => candidate.slug === 'zurich-center');
@@ -15,7 +15,8 @@ test('published OSM features provide bounded, research-backed removal reports fo
     expect(response.status()).toBe(200);
     const report = await response.json();
     expect(report.kind).toBe(kind);
-    expect(report.geometry_source).toContain('Published OSM revision');
+    if (kind === 'tree') expect(report.geometry_source).toMatch(/^Published (OSM|municipal tree) revision/);
+    else expect(report.geometry_source).toContain('Published OSM revision');
     expect(report.area_m2).toBeGreaterThan(0);
     expect(report.sources.length).toBeGreaterThan(3);
     const runoff = report.metrics.find((metric: { key: string }) => metric.key === 'runoff');

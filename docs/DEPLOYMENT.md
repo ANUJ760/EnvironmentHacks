@@ -35,6 +35,8 @@ required. Runtime Python packages and hashes are exported in `requirements.txt`
 from `uv.lock`; Docker uses the frozen lock. For a native Python environment use
 Python 3.12, `pip install -r requirements.txt`, then `pip install --no-deps -e .`.
 Native frontend packages are locked in `frontend/package-lock.json` (`npm ci`).
+Native Linux ingestion also needs the OS Expat library (`libexpat1` on Debian);
+the Docker image installs it and CI verifies native geospatial imports.
 
 If ports are occupied, set `ECOTWIN_DB_PORT`, `ECOTWIN_API_PORT`, and
 `ECOTWIN_FRONTEND_PORT` in the launch environment. Do not delete existing Docker
@@ -115,8 +117,8 @@ image pushes, or one-off paid tasks. They do not call `terraform apply`.
 4. Optional reproducible seed transfer (bucket name comes from Terraform outputs):
 
    ```bash
-   uv run python scripts/dataset_bundle.py upload --bucket YOUR_DATASET_BUCKET
-   uv run python scripts/dataset_bundle.py upload --bucket YOUR_DATASET_BUCKET --apply
+   uv run python scripts/dataset_bundle.py upload --bucket YOUR_DATASET_BUCKET --region YOUR_REGION
+   uv run python scripts/dataset_bundle.py upload --bucket YOUR_DATASET_BUCKET --region YOUR_REGION --apply
    ```
 
    This prints an immutable `manifests/bundles/HASH.json` index. It transfers raw
@@ -140,7 +142,9 @@ image pushes, or one-off paid tasks. They do not call `terraform apply`.
 
 Terraform does not provision Ollama on Fargate. Keep cloud explanations optional,
 or operate a separately secured CPU/GPU Ollama service and configure its internal
-URL/model in the frontend task. Never expose unauthenticated Ollama to the internet.
+URL/model using `ollama_base_url`, `ollama_model` and the explicit
+`ollama_allowed_hosts` Terraform hostname allowlist. Never expose unauthenticated
+Ollama to the internet. The frontend has no credentials for scientific S3 inputs.
 The manual GitHub release workflow requires pre-registered task definitions, both
 image digests and a protected production environment with least-privilege OIDC.
 Rollback to compatible image/task digests; do not automatically downgrade schemas.

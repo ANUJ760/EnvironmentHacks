@@ -10,8 +10,11 @@ __pycache__
 *.pyc
 .env
 .env.*
-data/raw
-data/processed
+data
+frontend/public/maps
+**/.terraform
+*.tfstate*
+deployment-outputs.json
 node_modules
 htmlcov
 .pytest_cache
