@@ -8,7 +8,7 @@
 mapped urban features, public datasets, and transparent scientific calculations
 to compare small interventions before committing to a detailed site assessment.
 
-**[Open the deployed application](https://dl65r09hy25vj.cloudfront.net)** — AWS
+**[Open the deployed application](https://dl65r09hy25vj.cloudfront.net)**. AWS
 staging deployment in Mumbai (`ap-south-1`). The public planner requires no sign-in.
 
 The current study covers central Zurich. Select a building, tree, road, or park,
