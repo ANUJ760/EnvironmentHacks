@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, Download, Info, RotateCcw, SlidersHorizontal, Sparkles, Trash2 } from 'lucide-react';
 import { useScenarioStore } from '@/stores/scenarioStore';
 import { useRemovalStore } from '@/stores/removalStore';
+import { selectionKey, usePlanningResultStore } from '@/stores/planningResultStore';
 import { fetchGateway } from '@/lib/api/browser-client';
 import { getHumanErrorMessage } from '@/lib/api/problem';
 import { formatImpact, removalLocation, replacementColor, type Finding, type RemovalMetric } from '@/lib/removal';
@@ -54,7 +55,10 @@ export function PlanningPanel({ cityId }: { cityId: string }) {
   const [hours, setHours] = useState(24);
   const [designStorm, setDesignStorm] = useState(false);
   const [storm, setStorm] = useState(30);
-  const [parameters, setParameters] = useState(DEFAULTS);
+  const [parameters, setParameters] = useState(() => {
+    const crown = Number(feature?.properties?.crown_diameter_m);
+    return { ...DEFAULTS, crown_diameter_m: kind === 'tree' && Number.isFinite(crown) && crown >= 1 && crown <= 30 ? crown : DEFAULTS.crown_diameter_m };
+  });
   const [previewEnabled, setPreviewEnabled] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState('');
@@ -71,6 +75,10 @@ export function PlanningPanel({ cityId }: { cityId: string }) {
     queryFn: async ({ signal }) => (await fetchGateway<PlanningReport>(`/api/gateway/v1/cities/${cityId}/planning-preview`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(debounced), signal })).data,
     staleTime: 45000, refetchInterval: 60000, retry: 1 });
   const { data: localAi } = useQuery<{ available: boolean; model: string | null }>({ queryKey: ['local-removal-ai'], queryFn: async () => (await fetch('/api/removal/explain')).json(), staleTime: 60000 });
+  useEffect(() => {
+    usePlanningResultStore.getState().publish(current ? report || null : null, selectionKey(feature), !current || isFetching);
+  }, [report, current, feature, isFetching]);
+  useEffect(() => () => usePlanningResultStore.getState().publish(null, '', false), []);
   useEffect(() => () => setPreview(null), [setPreview]);
   useEffect(() => { setAi(null); setAiError(''); }, [request]);
   useEffect(() => {
@@ -87,7 +95,6 @@ export function PlanningPanel({ cityId }: { cityId: string }) {
     finally { setAiBusy(false); }
   }
   if (!kind) return <div className="planning-card light-surface bg-sky-50"><h2 className="text-xl font-bold">Plan a city change</h2><p className="mt-3 text-sm text-muted">Click a feature, or draw any area. Compare energy, waste, water and vegetation effects.</p><div className="mt-5 flex flex-wrap gap-2 text-xs">{['Energy', 'Waste', 'Water', 'Environment'].map(label => <span key={label} className="rounded-full bg-white px-3 py-1 border border-sky-200">{label}</span>)}</div><p className="mt-4 text-xs text-muted">Screening estimates, with sources and uncertainty.</p></div>;
-  const inventory = report?.inventory as unknown as PlanningInventory | undefined;
   const air = report?.air as unknown as PlanningAir | undefined;
   const findings = report?.findings as unknown as Finding[] | undefined;
   const primaryKeys = ['runoff', 'energy_system', 'waste_system', 'demolition', 'residual', 'fill_volume', 'water_area', 'carbon', 'vegetation', 'pm_deposition'];
@@ -110,7 +117,6 @@ export function PlanningPanel({ cityId }: { cityId: string }) {
       {!report.within_analysis_area && <div className="planning-card bg-sky-50 text-sm">Exploratory selection: outside the verified study area. Missing data are not extrapolated.</div>}
       <button className="w-full rounded-xl bg-primary text-white py-3 font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50" disabled={isFetching} onClick={() => setPreviewEnabled(value => !value)}>{previewEnabled ? <RotateCcw size={17} /> : <Trash2 size={17} />}{previewEnabled ? 'Restore feature' : 'Preview removal on map'}</button>
       {preview && previewEnabled && <div className="flex gap-2">{[false, true].map(after => <button key={String(after)} aria-pressed={showingAfter === after} className={`flex-1 rounded-xl py-2 text-sm border ${showingAfter === after ? 'bg-sky-100 text-primary border-sky-300' : 'bg-white text-muted border-border'}`} onClick={() => setShowingAfter(after)}>{after ? 'After removal' : 'Before'}</button>)}</div>}
-      {inventory && <div className="planning-card"><h3 className="text-sm font-semibold">Detected from mapped data</h3><div className="grid grid-cols-3 gap-2 mt-3 text-center">{[[inventory.buildings_count, 'Buildings'], [inventory.mapped_trees_count, 'Mapped trees'], [inventory.roads_count, 'Roads']].map(([value, label]) => <div key={label}><strong className="text-xl">{value}</strong><p className="text-xs text-muted">{label}</p></div>)}</div><p className="text-xs text-muted mt-3">Land-cover coverage {Math.round(report.coverage_fraction * 100)}% · 2021 reference</p></div>}
       <section aria-label="Before and after consequences" className="space-y-3" data-removal-results>{primaryMetrics.length ? primaryMetrics.map(metric => <ImpactCard key={metric.key} metric={metric} />) : <div className="planning-card text-sm">No quantified change available. See evidence gaps below.</div>}</section>
       {secondary.length > 0 && <details className="planning-card"><summary className="cursor-pointer text-sm font-semibold">Energy, materials & all metrics ({secondary.length})</summary><div className="space-y-3 mt-3">{secondary.map(metric => <ImpactCard key={metric.key} metric={metric} />)}</div></details>}
       {air && <div className="planning-card bg-sky-50" data-air-baseline><h3 className="text-sm font-semibold">Regional air baseline</h3>{air.status === 'AVAILABLE' ? <><div className="grid grid-cols-2 gap-3 mt-3">{AIR_FIELDS.map(([key, label]) => <div key={key}><p className="text-xs text-muted">{label}</p><strong>{typeof air.current[key] === 'number' ? formatImpact(air.current[key] as number) : '—'}</strong><span className="text-xs ml-1">{air.units[key]}</span></div>)}</div><p className="text-xs text-muted mt-3">CAMS model · regional, not street-level{air.stale ? ' · stale' : ''}</p></> : <p className="text-sm text-muted mt-2">Unavailable. No fabricated concentrations.</p>}<p className="text-xs text-muted mt-2">O₂ and water chemistry: unavailable</p></div>}

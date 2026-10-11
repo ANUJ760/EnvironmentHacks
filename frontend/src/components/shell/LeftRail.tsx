@@ -1,9 +1,12 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import { Layers, Eye, EyeOff, TreePine, Building2, Droplets, Car, Trash2, Wind, CloudSun, Play } from 'lucide-react';
 import { useLayerStore } from '@/stores/layerStore';
+import { useScenarioStore } from '@/stores/scenarioStore';
+import { usePlanningStore } from '@/stores/planningStore';
+import { selectionKey, usePlanningResultStore } from '@/stores/planningResultStore';
+import type { PlanningInventory } from '@/lib/planning';
 
 interface LeftRailProps {
   cityId?: string;
@@ -13,6 +16,10 @@ interface LeftRailProps {
 
 export function LeftRail({ cityId, cityName, isSimulatePage = false }: LeftRailProps) {
   const { buildings, roads, parks, water, waste, air, weather, landcover, toggleLayer } = useLayerStore();
+  const feature = useScenarioStore(state => state.selectedFeature);
+  const highlighted = usePlanningStore(state => state.highlighted);
+  const result = usePlanningResultStore();
+  const inventory = result.key === selectionKey(feature) ? result.report?.inventory as unknown as PlanningInventory | undefined : undefined;
 
   const layerItems = [
     { id: 'buildings', label: 'Buildings (OSM)', icon: Building2, active: buildings },
@@ -34,15 +41,13 @@ export function LeftRail({ cityId, cityName, isSimulatePage = false }: LeftRailP
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">Planning workspace</h2>
         <p className="text-base font-bold text-ink truncate mt-0.5">{cityName || 'Overview'}</p>
 
-        {cityId && !isSimulatePage && (
-          <Link
-            href={`/city/${cityId}/simulate`}
-            className="mt-3 w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold py-2 px-3 rounded-lg shadow-sm transition-colors"
-          >
-            <Play className="w-3.5 h-3.5 fill-current" />
-            Saved scenario lab
-          </Link>
-        )}
+        <section className="planning-card mt-4" aria-label="Highlighted elements">
+          <h3 className="text-primary text-sm">{highlighted ? 'Under pointer' : 'Selected element'}</h3>
+          <p className="mt-2 text-base break-words">{highlighted?.name || feature?.properties?.name || 'Nothing selected'}</p>
+          <p className="text-xs mt-2 capitalize">{highlighted?.category || feature?.properties?.category || 'Hover or click the map'}</p>
+          {feature && <div className="text-xs mt-3 space-y-2"><p>Selected: {feature.properties?.name}</p>{feature.properties?.species && <p>{feature.properties.species}</p>}<p>{feature.properties?.source}</p>{feature.properties?.crown_note && <p>{feature.properties.crown_note}</p>}</div>}
+        </section>
+        {inventory && <section className="planning-card mt-3 text-sm" aria-label="Selected inventory"><h3 className="text-primary mb-2">Inside selection</h3><p>{inventory.buildings_count} buildings</p><p>{inventory.mapped_trees_count} mapped trees</p><p>{inventory.roads_count} roads</p><p className="text-xs mt-2">Mapped counts, not a complete census.</p></section>}
       </div>
 
       <div className="p-4 flex-1">

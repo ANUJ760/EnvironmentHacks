@@ -7,6 +7,7 @@ import { CityMap } from '@/components/map/CityMap';
 import type { Geometry } from 'geojson';
 import { LeftRail } from '@/components/shell/LeftRail';
 import { RightInspector } from '@/components/shell/RightInspector';
+import { PlanningSummary } from '@/components/map/PlanningSummary';
 import { ArrowLeft, Play, AlertCircle } from 'lucide-react';
 
 export default function CityViewerPage({ params }: { params: Promise<{ cityId: string }> }) {
@@ -48,13 +49,14 @@ export default function CityViewerPage({ params }: { params: Promise<{ cityId: s
       <LeftRail cityId={cityId} cityName={city.display_name} />
 
       {/* Main Map Viewport */}
-      <div className="flex-1 flex flex-col relative overflow-hidden">
+      <div className="city-center flex-1 flex flex-col relative overflow-hidden min-w-0">
         <CityMap
           cityId={cityId}
           citySlug={city.slug}
           cityName={city.display_name}
           boundary={city.boundary as unknown as Geometry}
         />
+        <PlanningSummary />
       </div>
 
       {/* Right Inspector Rail */}

@@ -35,6 +35,7 @@ export function createCityStyle(zurich: boolean): StyleSpecification {
       removal: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       drawing: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       trees: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, maxzoom: 16, cluster: true, clusterMaxZoom: 14, clusterRadius: 30 },
+      hover: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
     },
     layers: [
       { id: 'ground', type: 'background', paint: { 'background-color': '#c9dcb3' } },
@@ -56,8 +57,10 @@ export function createCityStyle(zurich: boolean): StyleSpecification {
       { id: 'roof-rims', type: 'line', source: 'city', 'source-layer': 'building', minzoom: 16, paint: { 'line-color': '#ffedcb', 'line-width': 0.6, 'line-opacity': 0.7, 'line-offset': -0.7 } },
       { id: 'aerial-building-hit', type: 'fill', source: 'city', 'source-layer': 'building', minzoom: 13, layout: { visibility: 'none' }, paint: { 'fill-opacity': 0 } },
       { id: 'tree-shadows', type: 'circle', source: 'trees', minzoom: 15, filter: ['!', ['has', 'point_count']], paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 15, 1.5, 18, 6], 'circle-color': '#547759', 'circle-opacity': 0.2, 'circle-translate': [2, 3] } },
-      { id: 'tree-canopies', type: 'circle', source: 'trees', minzoom: 15, filter: ['!', ['has', 'point_count']], paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 15, 1.3, 18, 5], 'circle-color': '#75a76a', 'circle-stroke-color': '#5c9057', 'circle-stroke-width': 0.6, 'circle-opacity': 0.95 } },
+      { id: 'tree-clusters', type: 'circle', source: 'trees', maxzoom: 15, filter: ['has', 'point_count'], paint: { 'circle-radius': ['step', ['get', 'point_count'], 8, 100, 12, 1000, 17], 'circle-color': '#4d9962', 'circle-stroke-color': '#b1e7a7', 'circle-stroke-width': 1, 'circle-opacity': 0.8 } },
+      { id: 'tree-canopies', type: 'circle', source: 'trees', minzoom: 13, filter: ['!', ['has', 'point_count']], paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 2, 15, 3, 18, 8], 'circle-color': '#75b76a', 'circle-stroke-color': '#3e7844', 'circle-stroke-width': 0.8, 'circle-opacity': 0.95 } },
       { id: 'tree-light', type: 'circle', source: 'trees', minzoom: 16, filter: ['!', ['has', 'point_count']], paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 16, 0.6, 18, 2.5], 'circle-color': '#b1cd87', 'circle-translate': [-1, -1], 'circle-opacity': 0.65 } },
+      { id: 'tree-hover', type: 'circle', source: 'hover', filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-radius': 11, 'circle-color': '#55d9ff', 'circle-opacity': 0.1, 'circle-stroke-color': '#55d9ff', 'circle-stroke-width': 2 } },
       { id: 'removal-ground', type: 'fill', source: 'removal', paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 1 } },
       { id: 'removal-border', type: 'line', source: 'removal', paint: { 'line-color': '#b17740', 'line-width': 2, 'line-dasharray': [2, 2] } },
       { id: 'analysis-fill', type: 'fill', source: 'analysis', paint: { 'fill-color': '#167858', 'fill-opacity': 0.035 } },
@@ -65,6 +68,7 @@ export function createCityStyle(zurich: boolean): StyleSpecification {
       { id: 'intervention-fill', type: 'fill', source: 'interventions', paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 0.5 } },
       { id: 'intervention-edge', type: 'line', source: 'interventions', paint: { 'line-color': '#174e42', 'line-width': 2.5, 'line-dasharray': [2, 1] } },
       { id: 'selection-fill', type: 'fill', source: 'selection', paint: { 'fill-color': '#ffd686', 'fill-opacity': 0.3 } },
+      { id: 'selected-tree', type: 'circle', source: 'selection', filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-radius': 11, 'circle-color': '#55d9ff', 'circle-opacity': 0.12, 'circle-stroke-color': '#55d9ff', 'circle-stroke-width': 2 } },
       { id: 'selection-edge', type: 'line', source: 'selection', paint: { 'line-color': '#ec9f43', 'line-width': 3 } },
       { id: 'drawing-fill', type: 'fill', source: 'drawing', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': '#38bdf8', 'fill-opacity': 0.22 } },
       { id: 'drawing-line', type: 'line', source: 'drawing', filter: ['==', ['geometry-type'], 'LineString'], paint: { 'line-color': '#0284c7', 'line-width': 3, 'line-dasharray': [2, 1] } },
@@ -78,7 +82,7 @@ export function createCityStyle(zurich: boolean): StyleSpecification {
 export const CITY_LAYER_GROUPS = {
   buildings: ['building-shadows', 'building-roofs', 'roof-details', 'roof-rims'],
   roads: ['road-edge', 'roads', 'rail', 'street-labels'],
-  parks: ['gardens', 'parks', 'park-edges', 'sports-fields', 'tree-shadows', 'tree-canopies', 'tree-light'],
+  parks: ['gardens', 'parks', 'park-edges', 'sports-fields', 'tree-shadows', 'tree-canopies', 'tree-light', 'tree-clusters'],
   water: ['water-edge', 'water', 'streams'],
 };
 

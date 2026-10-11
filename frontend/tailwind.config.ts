@@ -9,12 +9,12 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: '#080b10',
+        background: '#000000',
         ink: 'var(--ink)',
         primary: {
-          DEFAULT: '#0369a1',
-          hover: '#075985',
-          light: '#e0f2fe',
+          DEFAULT: '#55d9ff',
+          hover: '#8eeaff',
+          light: '#071727',
         },
         forest: {
           DEFAULT: '#082f49',
@@ -24,7 +24,7 @@ const config: Config = {
           DEFAULT: '#0284c7',
           light: '#e0f2fe',
         },
-        border: '#cbd5e1',
+        border: '#53cfff38',
         warning: {
           DEFAULT: '#B56B1F',
           light: '#FEF3E7',
@@ -38,8 +38,8 @@ const config: Config = {
         sm: ['0.9375rem', '1.5rem'],
       },
       fontFamily: {
-        sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+        sans: ['Courier New', 'Courier', 'monospace'],
+        mono: ['Courier New', 'Courier', 'monospace'],
       },
     },
   },

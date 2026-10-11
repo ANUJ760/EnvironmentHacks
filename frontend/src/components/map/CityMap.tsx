@@ -14,6 +14,7 @@ import { useAir, useLandcover, useWeather } from '@/hooks/useCityData';
 import { computeBBoxFromGeometry, isPointInPolygon } from '@/lib/geo';
 import { WORLDCOVER_CLASSES } from '@/lib/scenarios';
 import { fetchGateway } from '@/lib/api/browser-client';
+import { nearestTree } from '@/lib/rendering/tree-picking';
 
 interface CityMapProps {
   cityId: string;
@@ -34,6 +35,7 @@ function applyVisibility(map: LibreMap, layers: ReturnType<typeof useLayerStore.
     }
   }
   if (map.getLayer('neighborhoods')) map.setLayoutProperty('neighborhoods', 'visibility', mode === 'illustrated' ? 'visible' : 'none');
+  for (const id of ['tree-canopies', 'tree-light', 'tree-clusters']) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', layers.parks ? 'visible' : 'none');
   if (map.getLayer('aerial-building-hit')) map.setLayoutProperty('aerial-building-hit', 'visibility', mode === 'imagery' && layers.buildings ? 'visible' : 'none');
   if (map.getLayer('aerial')) {
     map.setPaintProperty('aerial', 'raster-opacity', mode === 'imagery' ? 1 : 0.24);
@@ -134,7 +136,9 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
         if ((event as any).sourceId === 'imagery' || /geo.admin/.test(event.error?.message || '')) setImageryError(true);
         else if (!map.isStyleLoaded()) setError('The city tiles could not load. Check your connection and reload the view.');
       });
-      map.on('load', () => {
+      // Initialize when the style is ready; optional aerial tiles must not block
+      // selection or local tree data while a remote image request is slow.
+      map.on('style.load', () => {
         if (disposed) return;
         setSource(map, 'analysis', { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: boundary }] });
         if (config.treesUrl) (map.getSource('trees') as GeoJSONSource).setData(config.treesUrl);
@@ -152,6 +156,12 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
           setBuildingCount(new Set(roofs.map(feature => feature.id ?? JSON.stringify(feature.geometry))).size);
           setZoom(map.getZoom());
           hostRef.current?.setAttribute('data-rendered-buildings', String(roofs.length));
+          const trees = map.queryRenderedFeatures(undefined, { layers: ['tree-canopies'] });
+          hostRef.current?.setAttribute('data-rendered-trees', String(trees.length));
+          hostRef.current?.setAttribute('data-tree-targets', JSON.stringify(trees.filter(tree => tree.geometry.type === 'Point').map(tree => {
+            const pixel = map.project(tree.geometry.type === 'Point' ? tree.geometry.coordinates as [number, number] : config.center);
+            return { x: pixel.x, y: pixel.y };
+          }).filter(pixel => pixel.x > map.getCanvas().clientWidth * .35 && pixel.x < map.getCanvas().clientWidth * .75 && pixel.y > map.getCanvas().clientHeight * .2 && pixel.y < map.getCanvas().clientHeight * .7).slice(0, 12)));
         }, 120);
       });
       map.on('click', event => {
@@ -160,7 +170,14 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
           return;
         }
         const hitLayers = ['tree-canopies', 'building-roofs', 'aerial-building-hit', 'parks', 'water', 'roads', 'air-stations'].filter(id => map.getLayer(id));
-        const hit = map.queryRenderedFeatures(event.point, { layers: hitLayers })[0];
+        const treeHits = map.queryRenderedFeatures([[event.point.x - 9, event.point.y - 9], [event.point.x + 9, event.point.y + 9]], { layers: ['tree-canopies'] });
+        const nearest = nearestTree(treeHits, event.point, coordinate => map.project(coordinate));
+        const cluster = map.queryRenderedFeatures(event.point, { layers: ['tree-clusters'] })[0];
+        if (!nearest && cluster?.geometry.type === 'Point') {
+          (map.getSource('trees') as GeoJSONSource).getClusterExpansionZoom(Number(cluster.properties.cluster_id)).then(zoom => { if (!disposed) map.easeTo({ center: cluster.geometry.type === 'Point' ? cluster.geometry.coordinates as [number, number] : config.center, zoom }); }).catch(() => {});
+          return;
+        }
+        const hit = nearest || map.queryRenderedFeatures(event.point, { layers: hitLayers })[0];
         if (!hit) {
           const lon = event.lngLat.lng, lat = event.lngLat.lat;
           const dy = 20 / 111320, dx = dy / Math.cos(lat * Math.PI / 180);
@@ -175,7 +192,8 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
           if (polygon) geometry = { type: 'Polygon', coordinates: polygon };
         }
         useRemovalStore.getState().setPreview(null);
-        setSelectedFeature({ type: 'Feature', id: hit.id, geometry, properties: { ...hit.properties, clicked_location: [event.lngLat.lng, event.lngLat.lat], name: hit.properties?.name || (category === 'building' ? 'Mapped building' : category === 'mapped_tree' ? 'Mapped tree' : category), category, source: category === 'air_station' ? 'OpenAQ' : 'OpenStreetMap / OpenFreeMap', within_analysis_area: isPointInPolygon([event.lngLat.lng, event.lngLat.lat], boundary), illustration_note: category === 'building' ? 'Real mapped footprint; roof colors and textures are illustrative.' : undefined } });
+        const location: [number, number] = category === 'mapped_tree' && geometry.type === 'Point' ? geometry.coordinates as [number, number] : [event.lngLat.lng, event.lngLat.lat];
+        setSelectedFeature({ type: 'Feature', id: hit.id, geometry, properties: { ...hit.properties, clicked_location: location, name: hit.properties?.name || hit.properties?.species || (category === 'building' ? 'Mapped building' : category === 'mapped_tree' ? 'Mapped tree' : category), category, source: hit.properties?.municipal ? 'City of Zürich · CC0 tree register' : hit.properties?.source || (category === 'air_station' ? 'OpenAQ' : 'OpenStreetMap / OpenFreeMap'), crown_note: hit.properties?.municipal ? 'Register estimate; 8 m may be a fallback, not a measured crown.' : undefined, within_analysis_area: isPointInPolygon(location, boundary), illustration_note: category === 'building' ? 'Real mapped footprint; roof colors and textures are illustrative.' : undefined } });
       });
       map.on('mousemove', event => {
         const now = performance.now();
@@ -183,9 +201,17 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
         if (now - lastHoverAt < 50 || map.isMoving()) return;
         lastHoverAt = now;
         if (!map.isStyleLoaded()) return;
-        const hits = map.queryRenderedFeatures(event.point, { layers: ['tree-canopies', 'building-roofs', 'aerial-building-hit', 'parks', 'roads'].filter(id => map.getLayer(id)) });
-        map.getCanvas().style.cursor = hits.length ? 'pointer' : '';
+        const trees = map.queryRenderedFeatures([[event.point.x - 9, event.point.y - 9], [event.point.x + 9, event.point.y + 9]], { layers: ['tree-canopies'] });
+        const hit = nearestTree(trees, event.point, coordinate => map.project(coordinate)) || map.queryRenderedFeatures(event.point, { layers: ['building-roofs', 'aerial-building-hit', 'parks', 'water', 'roads', 'tree-clusters'].filter(id => map.getLayer(id)) })[0];
+        map.getCanvas().style.cursor = hit ? 'pointer' : '';
+        const state = usePlanningStore.getState();
+        const next = hit ? { id: hit.id, name: hit.properties?.name || hit.properties?.species || (hit.properties?.point_count ? `${hit.properties.point_count} mapped trees · zoom to inspect` : hit.layer.id === 'building-roofs' ? 'Mapped building' : hit.layer.id === 'tree-canopies' ? 'Mapped tree' : hit.layer.id), category: hit.properties?.category || hit.layer.id } : null;
+        if (JSON.stringify(next) !== JSON.stringify(state.highlighted)) {
+          state.setHighlighted(next);
+          setSource(map, 'hover', { type: 'FeatureCollection', features: hit && hit.layer.id === 'tree-canopies' ? [{ type: 'Feature', geometry: hit.geometry, properties: {} }] : [] });
+        }
       });
+      map.getCanvas().addEventListener('mouseleave', () => { usePlanningStore.getState().setHighlighted(null); setSource(map, 'hover', { type: 'FeatureCollection', features: [] }); });
       observer = new ResizeObserver(() => map.resize());
       observer.observe(hostRef.current);
     }
@@ -198,6 +224,7 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
       mapRef.current = null;
       useRemovalStore.getState().setPreview(null);
       usePlanningStore.getState().resetDrawing();
+      usePlanningStore.getState().setHighlighted(null);
     };
   }, [config, boundary, setSelectedFeature]);
 
@@ -259,7 +286,7 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
 
   const canopy = (landcover?.class_percentages as Record<string, number> | undefined)?.['10'];
   return (
-    <div className="city-map relative flex-1 min-h-[620px] overflow-hidden bg-[#cadcb5]" data-city-map-ready={!!readyMap} data-view-mode={mode}>
+    <div className="city-map relative overflow-hidden bg-black" data-city-map-ready={!!readyMap} data-view-mode={mode}>
       <div ref={hostRef} style={{ position: 'absolute', inset: 0 }} />
       {layers.weather && weatherEffects && currentWeather && mode === 'illustrated' && (
         <div className={`city-atmosphere pointer-events-none absolute inset-0 ${night ? 'city-atmosphere-night' : ''} ${wet ? 'city-atmosphere-rain' : ''}`} aria-hidden="true" />
