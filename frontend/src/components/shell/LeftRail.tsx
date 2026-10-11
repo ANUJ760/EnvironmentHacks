@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Layers, Eye, EyeOff, TreePine, Building2, Droplets, Car, Trash2, Wind, CloudSun, Play } from 'lucide-react';
+import { Layers, Eye, EyeOff, TreePine, Building2, Droplets, Car, Trash2, Wind, CloudSun } from 'lucide-react';
 import { useLayerStore } from '@/stores/layerStore';
 import { useScenarioStore } from '@/stores/scenarioStore';
 import { usePlanningStore } from '@/stores/planningStore';
@@ -11,10 +11,9 @@ import type { PlanningInventory } from '@/lib/planning';
 interface LeftRailProps {
   cityId?: string;
   cityName?: string;
-  isSimulatePage?: boolean;
 }
 
-export function LeftRail({ cityId, cityName, isSimulatePage = false }: LeftRailProps) {
+export function LeftRail({ cityName }: LeftRailProps) {
   const { buildings, roads, parks, water, waste, air, weather, landcover, toggleLayer } = useLayerStore();
   const feature = useScenarioStore(state => state.selectedFeature);
   const highlighted = usePlanningStore(state => state.highlighted);

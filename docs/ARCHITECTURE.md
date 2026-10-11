@@ -27,6 +27,14 @@ changes have evidence-backed qualitative findings alongside supported quantities
 Intensity defaults are adjustable scenario assumptions, not locally measured values.
 Future calibration requires independent local measurements.
 
+The public frontend now has one planner, no sign-in, no separate lab and no run
+button: selecting or changing inputs automatically recomputes the preview. Legacy
+lab/account links redirect; privileged saved-scenario gateway routes return 410,
+rather than exposing account-owned data without authorization. Backend ownership
+checks remain intact for retained internal workflows. Panels use black translucent
+glass, bright white/blue Courier typography: selection left, map above summary,
+numeric effects right. See [accuracy and evaluation](ACCURACY.md).
+
 ## Components
 
 ```text
@@ -40,7 +48,7 @@ Browser: Next.js / React + MapLibre flat 2D
             └─ ObjectStore: local files now; private S3 via IAM in AWS
 
 Explicit ingestion CLI → verified raw objects + manifests → PostGIS snapshot
-Existing saved-scenario jobs → database/SQS queue → worker → stored reports
+Retained internal saved-scenario API → database/SQS queue → worker → stored reports
 Optional Ollama → ranks existing verified findings only; never computes impacts
 ```
 
@@ -54,6 +62,17 @@ Zurich has a downloaded OSM extract, native-resolution WorldCover 2021 study cro
 weather imports and a newly downloaded **73-hour CAMS/Open-Meteo air forecast**.
 Raw data stay ignored by Git. Import metadata include source, acquisition time,
 license, content hash and storage-independent object key.
+
+The Zürich municipal CC0 tree register is also downloaded (81,142 records,
+4,398 in-study) and pinned as `municipal_trees`. The compact visualization merges
+it with OSM using a documented 2 m cross-source matching heuristic (98,590 points).
+Species are retained; crown estimates may be provider defaults, not measurements.
+
+```bash
+ecotwin ingest municipal-trees --city zurich-center --file data/raw/zurich-municipal-trees.geojson
+ecotwin city snapshot --city zurich-center
+PYTHONPATH=. .venv/bin/python scripts/export_city_trees.py data/raw/osm/Zuerich.osm.pbf --municipal data/raw/zurich-municipal-trees.geojson --output frontend/public/maps/zurich-trees.geojson
+```
 
 ```bash
 # Run on the host with DATABASE_URL pointing at localhost and a writable local data directory.
@@ -124,6 +143,11 @@ registered raw/processed/manifest objects **preserving their exact object keys a
 hashes**, or re-ingest with the S3 configuration. PostGIS remains the query store
 (RDS PostgreSQL with PostGIS); S3 is the object store, not a spatial database.
 Existing production validation requires Cognito, S3, SQS and no local fallback.
+
+Those Cognito requirements belong to the retained privileged backend, not to the
+public Next.js planner. The frontend no longer uses NextAuth/Cognito or injects a
+development bearer token. It can run publicly over HTTPS with the backend's
+read-only preview endpoints; do not relax backend ownership checks to deploy it.
 
 Recommended deployment: ECR images → ECS/Fargate services; RDS/PostGIS; private
 S3; SQS worker queue; ALB HTTPS; Secrets Manager and CloudWatch. Run migrations

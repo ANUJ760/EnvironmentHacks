@@ -9,7 +9,7 @@ import { selectionKey, usePlanningResultStore } from '@/stores/planningResultSto
 import { fetchGateway } from '@/lib/api/browser-client';
 import { getHumanErrorMessage } from '@/lib/api/problem';
 import { formatImpact, removalLocation, replacementColor, type Finding, type RemovalMetric } from '@/lib/removal';
-import { exportPlanningReport, planningKind, type PlanningRequest, type PlanningReport, type PlanningAir, type PlanningInventory } from '@/lib/planning';
+import { exportPlanningReport, planningKind, type PlanningRequest, type PlanningReport, type PlanningAir } from '@/lib/planning';
 
 const AIR_FIELDS: [string, string][] = [['pm2_5', 'PM₂.₅'], ['nitrogen_dioxide', 'NO₂'], ['carbon_dioxide', 'CO₂'], ['ozone', 'O₃']];
 const DEFAULTS = { crown_diameter_m: 8, trunk_diameter_cm: 30, road_width_m: 6, road_length_m: 50,

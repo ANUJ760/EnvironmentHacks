@@ -17,11 +17,11 @@ const config: Config = {
           light: '#071727',
         },
         forest: {
-          DEFAULT: '#082f49',
+          DEFAULT: '#55d9ff',
           dark: '#071923',
         },
         accent: {
-          DEFAULT: '#0284c7',
+          DEFAULT: '#55d9ff',
           light: '#e0f2fe',
         },
         border: '#53cfff38',

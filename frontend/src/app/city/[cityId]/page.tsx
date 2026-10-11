@@ -8,7 +8,7 @@ import type { Geometry } from 'geojson';
 import { LeftRail } from '@/components/shell/LeftRail';
 import { RightInspector } from '@/components/shell/RightInspector';
 import { PlanningSummary } from '@/components/map/PlanningSummary';
-import { ArrowLeft, Play, AlertCircle } from 'lucide-react';
+import { ArrowLeft, AlertCircle } from 'lucide-react';
 
 export default function CityViewerPage({ params }: { params: Promise<{ cityId: string }> }) {
   const { cityId } = use(params);

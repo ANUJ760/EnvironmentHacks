@@ -42,6 +42,11 @@ export default function DataMethodologyPage() {
       </section>
 
       {/* Explicit Exclusions */}
+      <section id="accuracy" className="planning-card space-y-3">
+        <h2 className="text-lg text-primary font-bold">Accuracy & independent evaluation</h2>
+        <p className="text-sm">Screening estimates—not locally calibrated predictions. Passing tests and replaying exports check consistency, not real-world accuracy.</p>
+        <details className="text-sm"><summary className="cursor-pointer">Tree inventory & validation gaps</summary><p className="mt-3">Zürich's municipal CC0 register adds mapped locations and species. Crown diameters are estimates and may be an 8 m fallback; trunk size remains assumed. Nearby OSM records within 2 m are suppressed by a heuristic, not verified tree identity. Forest and private-tree coverage is incomplete.</p><a href="https://data.stadt-zuerich.ch/dataset/geo_baumkataster" className="text-primary underline">Provider metadata</a><p className="mt-3">For predictive accuracy, evaluate held-out surveyed trees, metered energy, weighed waste, rainfall/runoff events and independent air monitors. Report precision/recall for tree identity, MAE/RMSE and signed bias for numeric effects, and observed interval coverage. No independent local validation scores are claimed yet.</p></details>
+      </section>
       <section className="bg-white border border-border rounded-xl p-6 shadow-sm space-y-3 text-xs">
         <h2 className="text-sm font-bold text-ink flex items-center gap-2">
           <AlertCircle className="w-4 h-4 text-amber-600" />
@@ -51,8 +56,8 @@ export default function DataMethodologyPage() {
           Previous concept illustrations for EcoTwin featured illustrative figures (such as +1.8 °C temperature changes, +28% PM2.5 concentrations, or -35% habitat connectivity). In this production build, those figures are <strong>not hardcoded or simulated</strong> because:
         </p>
         <ul className="list-disc list-inside space-y-1.5 text-slate-700 pl-2">
-          <li><strong>Microclimate air temperature (heat_delta):</strong> Requires detailed 3D building canyon geometry, surface albedo, and calibrated boundary-layer physics.</li>
-          <li><strong>Street-level PM2.5 dispersion (pm25_delta):</strong> Cannot be accurately predicted solely from tree count without traffic emission matrices and micro-scale CFD.</li>
+          <li><strong>Microclimate air temperature (heat_delta):</strong> Requires local urban form, surface properties and a validated heat/air-flow model.</li>
+          <li><strong>Street-level PM2.5 dispersion (pm25_delta):</strong> Requires traffic emissions, wind/transport modelling and independent monitor validation; tree count alone is insufficient.</li>
           <li><strong>Biodiversity and health incidence:</strong> High-uncertainty downstream indicators that cannot be claimed from coarse land-cover reclassifications alone.</li>
         </ul>
         <p className="text-muted pt-2 border-t border-border">

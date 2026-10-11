@@ -34,7 +34,7 @@ export function createCityStyle(zurich: boolean): StyleSpecification {
       interventions: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       removal: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       drawing: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
-      trees: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, maxzoom: 16, cluster: true, clusterMaxZoom: 14, clusterRadius: 30 },
+      trees: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, maxzoom: 16, cluster: true, clusterMaxZoom: 14, clusterRadius: 30, attribution: zurich ? 'Trees: <a href="https://data.stadt-zuerich.ch/dataset/geo_baumkataster">City of Zürich (CC0)</a> / OSM' : '' },
       hover: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
     },
     layers: [
