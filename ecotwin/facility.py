@@ -3,12 +3,12 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 import math
-from typing import Dict, Optional, Set
+from typing import Dict, Optional, Set, Tuple, Union
 
 from ecotwin.categories import WasteCategory
 from ecotwin.exceptions import CapacityExceededError, PhysicsViolationError
 from ecotwin.stream import WasteStream
-from ecotwin.units import Energy, EnergyUnit, Mass, MassUnit, SpecificEnergy
+from ecotwin.units import Distance, Energy, EnergyUnit, Mass, MassUnit, SpecificEnergy
 
 
 @dataclass(frozen=True)
@@ -86,7 +86,8 @@ class FacilityResult:
 @dataclass(frozen=True)
 class ProcessingFacility:
     """
-    A facility or processing path with defined capacity, accepted categories, and conversion physics.
+    A facility or processing path with defined capacity, accepted categories, conversion physics,
+    and optional location/distance parameters.
     """
 
     name: str
@@ -94,10 +95,37 @@ class ProcessingFacility:
     default_profile: CategoryProcessingProfile
     category_profiles: Dict[WasteCategory, CategoryProcessingProfile] = field(default_factory=dict)
     accepted_categories: Optional[Set[WasteCategory]] = None
+    distance: Optional[Union[Distance, float]] = None
+    location: Optional[Tuple[float, float]] = None
 
     def __post_init__(self) -> None:
         if self.capacity.to_kg().value < 0:
             raise PhysicsViolationError(f"Facility capacity cannot be negative: {self.capacity}")
+        if self.distance is not None:
+            if isinstance(self.distance, (int, float)):
+                object.__setattr__(self, "distance", Distance.km(float(self.distance)))
+            elif not isinstance(self.distance, Distance):
+                raise TypeError(f"distance must be a Distance or float, got {type(self.distance)}")
+        if self.location is not None:
+            if not (isinstance(self.location, (tuple, list)) and len(self.location) == 2):
+                raise ValueError(f"Facility location must be a 2-tuple (x, y), got {self.location}")
+            x, y = self.location
+            if math.isnan(x) or math.isnan(y) or math.isinf(x) or math.isinf(y):
+                raise ValueError(f"Facility location coordinates cannot be NaN or Inf: {self.location}")
+
+    @property
+    def distance_km(self) -> float:
+        """Returns distance in km from source/collection centroid."""
+        if self.distance is not None and isinstance(self.distance, Distance):
+            return self.distance.to_km().value
+        if self.location is not None:
+            return float(math.hypot(self.location[0], self.location[1]))
+        return 0.0
+
+    @property
+    def distance_quantity(self) -> Distance:
+        """Returns distance as a typed Distance unit."""
+        return Distance.km(self.distance_km)
 
     def get_profile_for_category(self, category: WasteCategory) -> CategoryProcessingProfile:
         return self.category_profiles.get(category, self.default_profile)

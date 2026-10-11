@@ -1,3 +1,11 @@
+<p align="center">
+  <img src="ecotwin.png" alt="GeCompose Hero Banner" width="100%" />
+</p>
+
+<p align='center'> <b> A computational digital twin for modeling, stress-testing, and optimizing interconnected urban systems before deploying interventions in the real world. </b> </p>
+
+---
+
 ## Backend service (implemented)
 
 The interactive city-planning simulator now supports custom-area clearing/filling,
@@ -23,20 +31,6 @@ Actual validation evidence: [Implementation report](docs/implementation-report.j
 Interactive city removal impacts, live forecast data and optional local Ollama:
 [Removal previews](docs/REMOVAL_PREVIEWS.md).
 The handoff guide pack is private and excluded from Git and Docker builds.
-
-The original library overview below remains for compatibility. Its future-grid/EV/heat
-examples are illustrative; the new backend supports only the explicitly documented models.
-
----
-
-# EcoTwin 
-
-### Physics-Informed AI Digital Twin for Urban Energy, Mobility & Resource Systems
-
-> A computational digital twin for modeling, stress-testing, and optimizing interconnected urban systems before deploying interventions in the real world.
-
-
----
 
 ## Table of Contents
 

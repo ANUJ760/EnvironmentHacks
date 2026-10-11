@@ -11,7 +11,8 @@ from ecotwin.categories import WasteCategory
 from ecotwin.facility import CategoryProcessingProfile, ProcessingFacility
 from ecotwin.routing import RoutingPlan
 from ecotwin.scenario import UrbanScenario
-from ecotwin.units import Mass, SpecificEnergy
+from ecotwin.transport import TRANSPORT_BENCHMARK_NOTICE
+from ecotwin.units import Distance, Mass, SpecificEnergy
 
 
 # Benchmark assumptions notice attached to all synthetic scenarios
@@ -33,23 +34,24 @@ def generate_baseline_scenario(
     System Configuration:
     - Daily generation: 1,000 tonnes/day (~1.0 kg/capita/day for 1,000,000 inhabitants)
     - Composition:
-        * Organic:    45% (450 tonnes/day) -> Anaerobic Digestion Plant
-        * Recyclable: 25% (250 tonnes/day) -> Materials Recovery Facility
-        * E-Waste:     5% ( 50 tonnes/day) -> E-Waste Refurbishment Hub
-        * Residual:   25% (250 tonnes/day) -> Waste-to-Energy Plant
+        * Organic:    45% (450 tonnes/day) -> Anaerobic Digestion Plant (15.0 km)
+        * Recyclable: 25% (250 tonnes/day) -> Materials Recovery Facility (10.0 km)
+        * E-Waste:     5% ( 50 tonnes/day) -> E-Waste Refurbishment Hub (25.0 km)
+        * Residual:   25% (250 tonnes/day) -> Waste-to-Energy Plant (20.0 km)
     - Facilities configured with adequate reserve capacity:
-        * Anaerobic Digestion Plant: 500 tonnes/day capacity
-        * Materials Recovery Facility: 300 tonnes/day capacity
-        * E-Waste Refurbishment Hub: 65 tonnes/day capacity
-        * Waste-to-Energy Plant: 300 tonnes/day capacity
+        * Anaerobic Digestion Plant: 500 tonnes/day capacity (15 km distance)
+        * Materials Recovery Facility: 300 tonnes/day capacity (10 km distance)
+        * E-Waste Refurbishment Hub: 65 tonnes/day capacity (25 km distance)
+        * Waste-to-Energy Plant: 300 tonnes/day capacity (20 km distance)
     """
     total_waste = daily_waste_generation if daily_waste_generation is not None else Mass.tonnes(1000.0)
 
-    # 1. Processing facilities with realistic conversion physics
+    # 1. Processing facilities with realistic conversion physics & synthetic distances
     ad_facility = ProcessingFacility(
         name="Anaerobic_Digestion_Plant",
         capacity=Mass.tonnes(500.0),
         accepted_categories={WasteCategory.ORGANIC},
+        distance=Distance.km(15.0),
         default_profile=CategoryProcessingProfile(
             material_recovery_rate=0.45,  # 45% digestate compost/soil conditioner
             landfill_residue_rate=0.10,   # 10% non-digestible sorting reject
@@ -63,6 +65,7 @@ def generate_baseline_scenario(
         name="Materials_Recovery_Facility",
         capacity=Mass.tonnes(300.0),
         accepted_categories={WasteCategory.RECYCLABLE},
+        distance=Distance.km(10.0),
         default_profile=CategoryProcessingProfile(
             material_recovery_rate=0.82,  # 82% recovered high-grade plastics/paper/metals
             landfill_residue_rate=0.18,   # 18% contaminated sorting residue to landfill
@@ -74,6 +77,7 @@ def generate_baseline_scenario(
         name="E_Waste_Refurbishment_Hub",
         capacity=Mass.tonnes(65.0),
         accepted_categories={WasteCategory.E_WASTE},
+        distance=Distance.km(25.0),
         default_profile=CategoryProcessingProfile(
             material_recovery_rate=0.72,  # 72% recovered circuit components, copper, precious metals
             landfill_residue_rate=0.28,   # 28% non-recoverable hazardous residue/slag
@@ -85,6 +89,7 @@ def generate_baseline_scenario(
         name="Waste_to_Energy_Plant",
         capacity=Mass.tonnes(300.0),
         accepted_categories={WasteCategory.RESIDUAL},
+        distance=Distance.km(20.0),
         default_profile=CategoryProcessingProfile(
             material_recovery_rate=0.12,  # 12% bottom ash ferrous/non-ferrous metals
             landfill_residue_rate=0.18,   # 18% fly ash / inert vitrified residue
@@ -112,6 +117,18 @@ def generate_baseline_scenario(
             "mrf_sorting_efficiency": "82% recovery, 18% contamination reject",
             "ewaste_recovery": "72% precious metal/parts recovery, 28% hazardous residue",
             "wte_thermal_efficiency": "2400 kWh/tonne LHV, 25% net electric efficiency, 12% ash scrap recovery",
+        },
+        "transport_assumptions": {
+            "notice": TRANSPORT_BENCHMARK_NOTICE,
+            "default_vehicle_payload": "10.0 tonnes payload capacity per collection vehicle",
+            "vehicle_energy_consumption": "3.5 kWh / km diesel-equivalent heavy-duty collection truck",
+            "transport_emissions_factor": "0.27 kg CO2 / kWh combustion emissions factor",
+            "facility_distances_km": {
+                "Anaerobic_Digestion_Plant": 15.0,
+                "Materials_Recovery_Facility": 10.0,
+                "E_Waste_Refurbishment_Hub": 25.0,
+                "Waste_to_Energy_Plant": 20.0,
+            },
         },
     }
 
