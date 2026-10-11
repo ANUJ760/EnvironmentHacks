@@ -1,0 +1,3052 @@
+{
+  "components": {
+    "schemas": {
+      "AirReading": {
+        "properties": {
+          "distance_from_city_centroid_m": {
+            "title": "Distance From City Centroid M",
+            "type": "number"
+          },
+          "location": {
+            "additionalProperties": true,
+            "title": "Location",
+            "type": "object"
+          },
+          "measured_at": {
+            "format": "date-time",
+            "title": "Measured At",
+            "type": "string"
+          },
+          "parameter": {
+            "title": "Parameter",
+            "type": "string"
+          },
+          "revision_id": {
+            "format": "uuid",
+            "title": "Revision Id",
+            "type": "string"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          },
+          "stale": {
+            "title": "Stale",
+            "type": "boolean"
+          },
+          "station_id": {
+            "format": "uuid",
+            "title": "Station Id",
+            "type": "string"
+          },
+          "station_name": {
+            "title": "Station Name",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "station_id",
+          "station_name",
+          "location",
+          "parameter",
+          "value",
+          "unit",
+          "measured_at",
+          "source_url",
+          "revision_id",
+          "stale",
+          "distance_from_city_centroid_m"
+        ],
+        "title": "AirReading",
+        "type": "object"
+      },
+      "AirView": {
+        "properties": {
+          "evidence_class": {
+            "title": "Evidence Class",
+            "type": "string"
+          },
+          "readings": {
+            "items": {
+              "$ref": "#/components/schemas/AirReading"
+            },
+            "title": "Readings",
+            "type": "array"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "spatial_scope": {
+            "const": "station_only",
+            "title": "Spatial Scope",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evidence_class",
+          "reason_code",
+          "spatial_scope",
+          "readings"
+        ],
+        "title": "AirView",
+        "type": "object"
+      },
+      "CityView": {
+        "properties": {
+          "active_snapshot_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Snapshot Id"
+          },
+          "analysis_srid": {
+            "title": "Analysis Srid",
+            "type": "integer"
+          },
+          "boundary": {
+            "additionalProperties": true,
+            "title": "Boundary",
+            "type": "object"
+          },
+          "capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Capabilities",
+            "type": "array"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "display_name",
+          "boundary",
+          "analysis_srid",
+          "timezone",
+          "status",
+          "active_snapshot_id",
+          "capabilities"
+        ],
+        "title": "CityView",
+        "type": "object"
+      },
+      "DatasetView": {
+        "properties": {
+          "acquired_at": {
+            "format": "date-time",
+            "title": "Acquired At",
+            "type": "string"
+          },
+          "attribution": {
+            "title": "Attribution",
+            "type": "string"
+          },
+          "byte_size": {
+            "title": "Byte Size",
+            "type": "integer"
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "quality": {
+            "additionalProperties": true,
+            "title": "Quality",
+            "type": "object"
+          },
+          "sha256": {
+            "title": "Sha256",
+            "type": "string"
+          },
+          "source_license": {
+            "title": "Source License",
+            "type": "string"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "provider",
+          "source_url",
+          "sha256",
+          "byte_size",
+          "source_license",
+          "attribution",
+          "acquired_at",
+          "coverage",
+          "status",
+          "quality"
+        ],
+        "title": "DatasetView",
+        "type": "object"
+      },
+      "EditsReplace": {
+        "additionalProperties": false,
+        "properties": {
+          "edits": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "LAND_COVER_RECLASSIFY": "#/components/schemas/Reclassify",
+                  "SOLAR_PV_INSTALL": "#/components/schemas/SolarInstall",
+                  "WASTE_ROUTING_OVERRIDE": "#/components/schemas/WasteOverride"
+                },
+                "propertyName": "edit_type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Reclassify"
+                },
+                {
+                  "$ref": "#/components/schemas/SolarInstall"
+                },
+                {
+                  "$ref": "#/components/schemas/WasteOverride"
+                }
+              ]
+            },
+            "maxItems": 100,
+            "title": "Edits",
+            "type": "array"
+          }
+        },
+        "required": [
+          "edits"
+        ],
+        "title": "EditsReplace",
+        "type": "object"
+      },
+      "EvidenceClass": {
+        "enum": [
+          "OBSERVED",
+          "DETERMINISTIC_CALCULATION",
+          "SCREENING_ESTIMATE",
+          "CALIBRATED_PREDICTION",
+          "ASSUMED_INPUT",
+          "UNAVAILABLE"
+        ],
+        "title": "EvidenceClass",
+        "type": "string"
+      },
+      "FeatureCollection": {
+        "properties": {
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/GeoFeatureView"
+            },
+            "title": "Features",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "type": {
+            "const": "FeatureCollection",
+            "default": "FeatureCollection",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "features",
+          "next_cursor"
+        ],
+        "title": "FeatureCollection",
+        "type": "object"
+      },
+      "GeoFeatureView": {
+        "properties": {
+          "geometry": {
+            "additionalProperties": true,
+            "title": "Geometry",
+            "type": "object"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "properties": {
+            "additionalProperties": true,
+            "title": "Properties",
+            "type": "object"
+          },
+          "type": {
+            "const": "Feature",
+            "default": "Feature",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "geometry",
+          "properties"
+        ],
+        "title": "GeoFeatureView",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "JobAccepted": {
+        "properties": {
+          "job_id": {
+            "format": "uuid",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "status_url": {
+            "title": "Status Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "status_url"
+        ],
+        "title": "JobAccepted",
+        "type": "object"
+      },
+      "JobView": {
+        "properties": {
+          "attempt": {
+            "title": "Attempt",
+            "type": "integer"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "progress_pct": {
+            "title": "Progress Pct",
+            "type": "integer"
+          },
+          "result_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Id"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "attempt",
+          "progress_pct",
+          "error_code",
+          "error_message",
+          "result_id"
+        ],
+        "title": "JobView",
+        "type": "object"
+      },
+      "LandcoverView": {
+        "properties": {
+          "city_area_m2": {
+            "title": "City Area M2",
+            "type": "number"
+          },
+          "class_areas_m2": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Class Areas M2",
+            "type": "object"
+          },
+          "class_percentages": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Class Percentages",
+            "type": "object"
+          },
+          "covered_area_m2": {
+            "title": "Covered Area M2",
+            "type": "number"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "reference_year": {
+            "const": 2021,
+            "default": 2021,
+            "title": "Reference Year",
+            "type": "integer"
+          },
+          "source_revision_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Source Revision Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "class_areas_m2",
+          "class_percentages",
+          "covered_area_m2",
+          "city_area_m2",
+          "source_revision_ids",
+          "limitations"
+        ],
+        "title": "LandcoverView",
+        "type": "object"
+      },
+      "Metric": {
+        "properties": {
+          "absolute_delta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Absolute Delta"
+          },
+          "baseline_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Value"
+          },
+          "confidence_interval": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence Interval"
+          },
+          "end_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End At"
+          },
+          "evidence_class": {
+            "$ref": "#/components/schemas/EvidenceClass"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "model_id": {
+            "title": "Model Id",
+            "type": "string"
+          },
+          "model_version": {
+            "title": "Model Version",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "parameter_digest": {
+            "title": "Parameter Digest",
+            "type": "string"
+          },
+          "percentage_delta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percentage Delta"
+          },
+          "scenario_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Value"
+          },
+          "source_revision_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Revision Ids",
+            "type": "array"
+          },
+          "spatial_scope": {
+            "title": "Spatial Scope",
+            "type": "string"
+          },
+          "start_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start At"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "baseline_value",
+          "scenario_value",
+          "absolute_delta",
+          "percentage_delta",
+          "unit",
+          "spatial_scope",
+          "evidence_class",
+          "model_id",
+          "model_version",
+          "source_revision_ids",
+          "parameter_digest",
+          "limitations"
+        ],
+        "title": "Metric",
+        "type": "object"
+      },
+      "PlanningReport": {
+        "properties": {
+          "affected_geometry": {
+            "additionalProperties": true,
+            "title": "Affected Geometry",
+            "type": "object"
+          },
+          "air": {
+            "additionalProperties": true,
+            "title": "Air",
+            "type": "object"
+          },
+          "area_m2": {
+            "title": "Area M2",
+            "type": "number"
+          },
+          "city_id": {
+            "title": "City Id",
+            "type": "string"
+          },
+          "computed_at": {
+            "title": "Computed At",
+            "type": "string"
+          },
+          "coverage_fraction": {
+            "title": "Coverage Fraction",
+            "type": "number"
+          },
+          "findings": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "geometry_source": {
+            "title": "Geometry Source",
+            "type": "string"
+          },
+          "hourly": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Hourly",
+            "type": "array"
+          },
+          "input_sha256": {
+            "title": "Input Sha256",
+            "type": "string"
+          },
+          "inputs": {
+            "additionalProperties": true,
+            "title": "Inputs",
+            "type": "object"
+          },
+          "inventory": {
+            "additionalProperties": true,
+            "title": "Inventory",
+            "type": "object"
+          },
+          "landcover": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Landcover",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/RemovalMetric"
+            },
+            "title": "Metrics",
+            "type": "array"
+          },
+          "model_version": {
+            "default": "planning-screen-v1",
+            "title": "Model Version",
+            "type": "string"
+          },
+          "provenance": {
+            "additionalProperties": true,
+            "title": "Provenance",
+            "type": "object"
+          },
+          "result_sha256": {
+            "title": "Result Sha256",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "weather": {
+            "additionalProperties": true,
+            "title": "Weather",
+            "type": "object"
+          },
+          "within_analysis_area": {
+            "title": "Within Analysis Area",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "computed_at",
+          "city_id",
+          "snapshot_id",
+          "area_m2",
+          "affected_geometry",
+          "geometry_source",
+          "within_analysis_area",
+          "inventory",
+          "landcover",
+          "coverage_fraction",
+          "metrics",
+          "findings",
+          "limitations",
+          "sources",
+          "weather",
+          "air",
+          "hourly",
+          "inputs",
+          "provenance",
+          "input_sha256",
+          "result_sha256"
+        ],
+        "title": "PlanningReport",
+        "type": "object"
+      },
+      "PlanningRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "default": "remove",
+            "enum": [
+              "remove",
+              "fill",
+              "green"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "building_levels": {
+            "default": 3,
+            "maximum": 60.0,
+            "minimum": 1.0,
+            "title": "Building Levels",
+            "type": "number"
+          },
+          "crown_diameter_m": {
+            "default": 8,
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Crown Diameter M",
+            "type": "number"
+          },
+          "demolition_t_m2": {
+            "default": 0.8,
+            "maximum": 5.0,
+            "minimum": 0.0,
+            "title": "Demolition T M2",
+            "type": "number"
+          },
+          "deposition_velocity_mm_s": {
+            "default": 1,
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Deposition Velocity Mm S",
+            "type": "number"
+          },
+          "displaced_fraction": {
+            "default": 1,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Displaced Fraction",
+            "type": "number"
+          },
+          "energy_kwh_m2_year": {
+            "default": 100,
+            "maximum": 600.0,
+            "minimum": 0.0,
+            "title": "Energy Kwh M2 Year",
+            "type": "number"
+          },
+          "fill_density_t_m3": {
+            "default": 1.6,
+            "maximum": 3.0,
+            "minimum": 0.5,
+            "title": "Fill Density T M3",
+            "type": "number"
+          },
+          "fill_height_m": {
+            "default": 0.5,
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "title": "Fill Height M",
+            "type": "number"
+          },
+          "floor_m2_per_person": {
+            "default": 40,
+            "maximum": 500.0,
+            "minimum": 5.0,
+            "title": "Floor M2 Per Person",
+            "type": "number"
+          },
+          "forecast_hours": {
+            "default": 24,
+            "maximum": 72.0,
+            "minimum": 6.0,
+            "title": "Forecast Hours",
+            "type": "integer"
+          },
+          "forest_carbon_kg_m2": {
+            "default": 7,
+            "maximum": 50.0,
+            "minimum": 0.0,
+            "title": "Forest Carbon Kg M2",
+            "type": "number"
+          },
+          "geometry": {
+            "additionalProperties": true,
+            "title": "Geometry",
+            "type": "object"
+          },
+          "leaf_area_index": {
+            "default": 3,
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Leaf Area Index",
+            "type": "number"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "rainfall_mm": {
+            "anyOf": [
+              {
+                "maximum": 300.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rainfall Mm"
+          },
+          "recovery_fraction": {
+            "default": 0.6,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Recovery Fraction",
+            "type": "number"
+          },
+          "replacement": {
+            "default": "grass",
+            "enum": [
+              "unchanged",
+              "grass",
+              "bare",
+              "impervious"
+            ],
+            "title": "Replacement",
+            "type": "string"
+          },
+          "road_length_m": {
+            "default": 50,
+            "maximum": 300.0,
+            "minimum": 5.0,
+            "title": "Road Length M",
+            "type": "number"
+          },
+          "road_width_m": {
+            "default": 6,
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Road Width M",
+            "type": "number"
+          },
+          "selection_type": {
+            "default": "area",
+            "enum": [
+              "area",
+              "tree",
+              "building",
+              "road",
+              "park",
+              "water"
+            ],
+            "title": "Selection Type",
+            "type": "string"
+          },
+          "soil_group": {
+            "default": "B",
+            "enum": [
+              "A",
+              "B",
+              "C",
+              "D"
+            ],
+            "title": "Soil Group",
+            "type": "string"
+          },
+          "trunk_diameter_cm": {
+            "default": 30,
+            "maximum": 150.0,
+            "minimum": 3.0,
+            "title": "Trunk Diameter Cm",
+            "type": "number"
+          },
+          "waste_kg_person_day": {
+            "default": 1,
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Waste Kg Person Day",
+            "type": "number"
+          },
+          "water_depth_m": {
+            "default": 1.5,
+            "maximum": 30.0,
+            "minimum": 0.0,
+            "title": "Water Depth M",
+            "type": "number"
+          }
+        },
+        "required": [
+          "geometry"
+        ],
+        "title": "PlanningRequest",
+        "type": "object"
+      },
+      "Reclassify": {
+        "additionalProperties": false,
+        "properties": {
+          "edit_type": {
+            "const": "LAND_COVER_RECLASSIFY",
+            "title": "Edit Type",
+            "type": "string"
+          },
+          "fraction": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 1.0,
+            "title": "Fraction",
+            "type": "number"
+          },
+          "from_class_code": {
+            "title": "From Class Code",
+            "type": "integer"
+          },
+          "polygon_geojson": {
+            "additionalProperties": true,
+            "title": "Polygon Geojson",
+            "type": "object"
+          },
+          "to_class_code": {
+            "title": "To Class Code",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "edit_type",
+          "polygon_geojson",
+          "from_class_code",
+          "to_class_code",
+          "fraction"
+        ],
+        "title": "Reclassify",
+        "type": "object"
+      },
+      "RemovalMetric": {
+        "properties": {
+          "after": {
+            "title": "After",
+            "type": "number"
+          },
+          "before": {
+            "title": "Before",
+            "type": "number"
+          },
+          "caveat": {
+            "title": "Caveat",
+            "type": "string"
+          },
+          "delta": {
+            "title": "Delta",
+            "type": "number"
+          },
+          "evidence": {
+            "title": "Evidence",
+            "type": "string"
+          },
+          "high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "unit",
+          "before",
+          "after",
+          "delta",
+          "evidence",
+          "method",
+          "caveat"
+        ],
+        "title": "RemovalMetric",
+        "type": "object"
+      },
+      "RemovalReport": {
+        "properties": {
+          "affected_geometry": {
+            "additionalProperties": true,
+            "title": "Affected Geometry",
+            "type": "object"
+          },
+          "area_m2": {
+            "title": "Area M2",
+            "type": "number"
+          },
+          "computed_at": {
+            "title": "Computed At",
+            "type": "string"
+          },
+          "findings": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "geometry_source": {
+            "title": "Geometry Source",
+            "type": "string"
+          },
+          "hourly": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Hourly",
+            "type": "array"
+          },
+          "inputs": {
+            "additionalProperties": true,
+            "title": "Inputs",
+            "type": "object"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/RemovalMetric"
+            },
+            "title": "Metrics",
+            "type": "array"
+          },
+          "model_version": {
+            "default": "removal-screen-v1",
+            "title": "Model Version",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "weather": {
+            "additionalProperties": true,
+            "title": "Weather",
+            "type": "object"
+          },
+          "within_analysis_area": {
+            "title": "Within Analysis Area",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "computed_at",
+          "kind",
+          "affected_geometry",
+          "area_m2",
+          "geometry_source",
+          "within_analysis_area",
+          "weather",
+          "inputs",
+          "metrics",
+          "hourly",
+          "findings",
+          "limitations",
+          "sources"
+        ],
+        "title": "RemovalReport",
+        "type": "object"
+      },
+      "RemovalRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "baseline_cover": {
+            "default": "grass",
+            "enum": [
+              "grass",
+              "wood",
+              "impervious"
+            ],
+            "title": "Baseline Cover",
+            "type": "string"
+          },
+          "crown_diameter_m": {
+            "default": 8,
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Crown Diameter M",
+            "type": "number"
+          },
+          "forecast_hours": {
+            "default": 24,
+            "maximum": 72.0,
+            "minimum": 6.0,
+            "title": "Forecast Hours",
+            "type": "integer"
+          },
+          "geometry": {
+            "additionalProperties": true,
+            "title": "Geometry",
+            "type": "object"
+          },
+          "kind": {
+            "enum": [
+              "tree",
+              "park",
+              "building",
+              "road"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "location": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Location",
+            "type": "array"
+          },
+          "rainfall_mm": {
+            "anyOf": [
+              {
+                "maximum": 300.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rainfall Mm"
+          },
+          "replacement": {
+            "default": "grass",
+            "enum": [
+              "unchanged",
+              "grass",
+              "bare",
+              "impervious"
+            ],
+            "title": "Replacement",
+            "type": "string"
+          },
+          "road_length_m": {
+            "default": 50,
+            "maximum": 300.0,
+            "minimum": 5.0,
+            "title": "Road Length M",
+            "type": "number"
+          },
+          "road_width_m": {
+            "default": 6,
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Road Width M",
+            "type": "number"
+          },
+          "roof_usable_fraction": {
+            "default": 0.5,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Roof Usable Fraction",
+            "type": "number"
+          },
+          "shade_fraction": {
+            "default": 0.8,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Shade Fraction",
+            "type": "number"
+          },
+          "soil_group": {
+            "default": "B",
+            "enum": [
+              "A",
+              "B",
+              "C",
+              "D"
+            ],
+            "title": "Soil Group",
+            "type": "string"
+          },
+          "trunk_diameter_cm": {
+            "default": 30,
+            "maximum": 150.0,
+            "minimum": 3.0,
+            "title": "Trunk Diameter Cm",
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "geometry",
+          "location"
+        ],
+        "title": "RemovalRequest",
+        "type": "object"
+      },
+      "ResultView": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "evidence": {
+            "additionalProperties": true,
+            "title": "Evidence",
+            "type": "object"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "input_digest": {
+            "title": "Input Digest",
+            "type": "string"
+          },
+          "job_id": {
+            "format": "uuid",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/Metric"
+            },
+            "title": "Metrics",
+            "type": "array"
+          },
+          "model_versions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Model Versions",
+            "type": "object"
+          },
+          "output_digest": {
+            "title": "Output Digest",
+            "type": "string"
+          },
+          "report_schema_version": {
+            "title": "Report Schema Version",
+            "type": "integer"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "job_id",
+          "report_schema_version",
+          "input_digest",
+          "output_digest",
+          "model_versions",
+          "metrics",
+          "warnings",
+          "evidence",
+          "created_at"
+        ],
+        "title": "ResultView",
+        "type": "object"
+      },
+      "ScenarioCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "city_id": {
+            "format": "uuid",
+            "title": "City Id",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "format": "uuid",
+            "title": "Snapshot Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "city_id",
+          "snapshot_id",
+          "name"
+        ],
+        "title": "ScenarioCreate",
+        "type": "object"
+      },
+      "ScenarioView": {
+        "properties": {
+          "edits": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Edits",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "scenario_sha256": {
+            "title": "Scenario Sha256",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "format": "uuid",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "snapshot_id",
+          "name",
+          "version",
+          "scenario_sha256",
+          "edits"
+        ],
+        "title": "ScenarioView",
+        "type": "object"
+      },
+      "SimulationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "end_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End At"
+          },
+          "event_rainfall_mm": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Rainfall Mm"
+          },
+          "optimize_waste": {
+            "default": false,
+            "title": "Optimize Waste",
+            "type": "boolean"
+          },
+          "report_schema_version": {
+            "const": 1,
+            "default": 1,
+            "title": "Report Schema Version",
+            "type": "integer"
+          },
+          "requested_models": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Requested Models",
+            "type": "array"
+          },
+          "start_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start At"
+          }
+        },
+        "required": [
+          "requested_models"
+        ],
+        "title": "SimulationRequest",
+        "type": "object"
+      },
+      "SolarInstall": {
+        "additionalProperties": false,
+        "properties": {
+          "edit_type": {
+            "const": "SOLAR_PV_INSTALL",
+            "title": "Edit Type",
+            "type": "string"
+          },
+          "footprint_geojson": {
+            "additionalProperties": true,
+            "title": "Footprint Geojson",
+            "type": "object"
+          },
+          "installed_kwp": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 1000000.0,
+            "title": "Installed Kwp",
+            "type": "number"
+          },
+          "panel_azimuth_deg": {
+            "default": 0,
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Panel Azimuth Deg",
+            "type": "number"
+          },
+          "panel_tilt_deg": {
+            "default": 0,
+            "maximum": 90.0,
+            "minimum": 0.0,
+            "title": "Panel Tilt Deg",
+            "type": "number"
+          },
+          "performance_ratio": {
+            "default": 0.75,
+            "exclusiveMinimum": 0.0,
+            "maximum": 1.0,
+            "title": "Performance Ratio",
+            "type": "number"
+          }
+        },
+        "required": [
+          "edit_type",
+          "footprint_geojson",
+          "installed_kwp"
+        ],
+        "title": "SolarInstall",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WasteOverride": {
+        "additionalProperties": false,
+        "properties": {
+          "allocation_fraction": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Allocation Fraction",
+            "type": "number"
+          },
+          "edit_type": {
+            "const": "WASTE_ROUTING_OVERRIDE",
+            "title": "Edit Type",
+            "type": "string"
+          },
+          "facility_id": {
+            "title": "Facility Id",
+            "type": "string"
+          },
+          "origin_id": {
+            "title": "Origin Id",
+            "type": "string"
+          },
+          "stream_category": {
+            "title": "Stream Category",
+            "type": "string"
+          }
+        },
+        "required": [
+          "edit_type",
+          "stream_category",
+          "origin_id",
+          "facility_id",
+          "allocation_fraction"
+        ],
+        "title": "WasteOverride",
+        "type": "object"
+      },
+      "WeatherReading": {
+        "properties": {
+          "ghi_w_m2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ghi W M2"
+          },
+          "humidity_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Humidity Pct"
+          },
+          "issued_at": {
+            "format": "date-time",
+            "title": "Issued At",
+            "type": "string"
+          },
+          "model_name": {
+            "title": "Model Name",
+            "type": "string"
+          },
+          "rain_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rain Mm"
+          },
+          "source_lat": {
+            "title": "Source Lat",
+            "type": "number"
+          },
+          "source_lon": {
+            "title": "Source Lon",
+            "type": "number"
+          },
+          "temperature_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature C"
+          },
+          "valid_at": {
+            "format": "date-time",
+            "title": "Valid At",
+            "type": "string"
+          },
+          "wind_mps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wind Mps"
+          }
+        },
+        "required": [
+          "valid_at",
+          "issued_at",
+          "temperature_c",
+          "rain_mm",
+          "humidity_pct",
+          "wind_mps",
+          "ghi_w_m2",
+          "model_name",
+          "source_lat",
+          "source_lon"
+        ],
+        "title": "WeatherReading",
+        "type": "object"
+      },
+      "WeatherView": {
+        "properties": {
+          "age_hours": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Hours"
+          },
+          "current": {
+            "default": false,
+            "title": "Current",
+            "type": "boolean"
+          },
+          "evidence_class": {
+            "default": "UNAVAILABLE",
+            "title": "Evidence Class",
+            "type": "string"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/WeatherReading"
+            },
+            "title": "Series",
+            "type": "array"
+          },
+          "spatial_scope": {
+            "default": "coarse_forecast_grid",
+            "title": "Spatial Scope",
+            "type": "string"
+          },
+          "stale": {
+            "default": false,
+            "title": "Stale",
+            "type": "boolean"
+          },
+          "status": {
+            "default": "AVAILABLE",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "series"
+        ],
+        "title": "WeatherView",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "EcoTwin Backend",
+    "version": "0.2.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/livez": {
+      "get": {
+        "operationId": "livez_livez_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Livez Livez Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Livez",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/readyz": {
+      "get": {
+        "operationId": "readyz_readyz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Readyz Readyz Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Readyz",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/v1/cities": {
+      "get": {
+        "operationId": "cities_v1_cities_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CityView"
+                  },
+                  "title": "Response Cities V1 Cities Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cities",
+        "tags": [
+          "cities"
+        ]
+      }
+    },
+    "/v1/cities/{identifier}": {
+      "get": {
+        "operationId": "get_city_v1_cities__identifier__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identifier",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identifier",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CityView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get City",
+        "tags": [
+          "cities"
+        ]
+      }
+    },
+    "/v1/cities/{identifier}/datasets": {
+      "get": {
+        "operationId": "datasets_v1_cities__identifier__datasets_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identifier",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identifier",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DatasetView"
+                  },
+                  "title": "Response Datasets V1 Cities  Identifier  Datasets Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Datasets",
+        "tags": [
+          "cities"
+        ]
+      }
+    },
+    "/v1/cities/{identifier}/environment-baseline": {
+      "get": {
+        "operationId": "environment_baseline_v1_cities__identifier__environment_baseline_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identifier",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identifier",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Environment Baseline",
+        "tags": [
+          "planning previews"
+        ]
+      }
+    },
+    "/v1/cities/{identifier}/features": {
+      "get": {
+        "operationId": "features_v1_cities__identifier__features_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identifier",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identifier",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "bbox",
+            "required": true,
+            "schema": {
+              "title": "Bbox",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureCollection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Features",
+        "tags": [
+          "cities"
+        ]
+      }
+    },
+    "/v1/cities/{identifier}/landcover": {
+      "get": {
+        "operationId": "landcover_v1_cities__identifier__landcover_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identifier",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identifier",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LandcoverView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Landcover",
+        "tags": [
+          "cities"
+        ]
+      }
+    },
+    "/v1/cities/{identifier}/observations/air": {
+      "get": {
+        "operationId": "air_v1_cities__identifier__observations_air_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identifier",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identifier",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "parameter",
+            "required": false,
+            "schema": {
+              "default": "pm25",
+              "title": "Parameter",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AirView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Air",
+        "tags": [
+          "cities"
+        ]
+      }
+    },
+    "/v1/cities/{identifier}/observations/weather": {
+      "get": {
+        "operationId": "weather_v1_cities__identifier__observations_weather_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identifier",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identifier",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeatherView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Weather",
+        "tags": [
+          "cities"
+        ]
+      }
+    },
+    "/v1/cities/{identifier}/planning-preview": {
+      "post": {
+        "operationId": "planning_preview_v1_cities__identifier__planning_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identifier",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identifier",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanningRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Planning Preview",
+        "tags": [
+          "planning previews"
+        ]
+      }
+    },
+    "/v1/cities/{identifier}/removal-preview": {
+      "post": {
+        "operationId": "preview_v1_cities__identifier__removal_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identifier",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identifier",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemovalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemovalReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview",
+        "tags": [
+          "removal previews"
+        ]
+      }
+    },
+    "/v1/jobs/{identifier}": {
+      "get": {
+        "operationId": "get_job_v1_jobs__identifier__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identifier",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identifier",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Job",
+        "tags": [
+          "scenarios"
+        ]
+      }
+    },
+    "/v1/jobs/{identifier}/cancel": {
+      "post": {
+        "operationId": "cancel_job_v1_jobs__identifier__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identifier",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identifier",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Cancel Job",
+        "tags": [
+          "scenarios"
+        ]
+      }
+    },
+    "/v1/models": {
+      "get": {
+        "operationId": "models_v1_models_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "city_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "City Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Models V1 Models Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Models",
+        "tags": [
+          "cities"
+        ]
+      }
+    },
+    "/v1/results/{identifier}": {
+      "get": {
+        "operationId": "result_v1_results__identifier__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identifier",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identifier",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Result",
+        "tags": [
+          "scenarios"
+        ]
+      }
+    },
+    "/v1/scenarios": {
+      "post": {
+        "operationId": "create_v1_scenarios_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScenarioCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create",
+        "tags": [
+          "scenarios"
+        ]
+      }
+    },
+    "/v1/scenarios/{identifier}": {
+      "get": {
+        "operationId": "get_scenario_v1_scenarios__identifier__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identifier",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identifier",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Scenario",
+        "tags": [
+          "scenarios"
+        ]
+      }
+    },
+    "/v1/scenarios/{identifier}/edits": {
+      "put": {
+        "operationId": "replace_edits_v1_scenarios__identifier__edits_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identifier",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identifier",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "if-match",
+            "required": true,
+            "schema": {
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditsReplace"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Replace Edits",
+        "tags": [
+          "scenarios"
+        ]
+      }
+    },
+    "/v1/scenarios/{identifier}/reports": {
+      "get": {
+        "operationId": "reports_v1_scenarios__identifier__reports_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identifier",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identifier",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ResultView"
+                  },
+                  "title": "Response Reports V1 Scenarios  Identifier  Reports Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reports",
+        "tags": [
+          "scenarios"
+        ]
+      }
+    },
+    "/v1/scenarios/{identifier}/simulate": {
+      "post": {
+        "operationId": "simulate_v1_scenarios__identifier__simulate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identifier",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identifier",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Simulate",
+        "tags": [
+          "scenarios"
+        ]
+      }
+    }
+  }
+}

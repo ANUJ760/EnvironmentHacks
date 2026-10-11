@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { --background: #000; --ink: #fff; --muted: #a9e5ff; --primary: #55d9ff; --forest: #55d9ff; --accent: #55d9ff; --border: #53cfff38; }
+body { color: var(--ink); background: #000; font-family: 'Courier New', Courier, monospace; margin: 0; font-size: 16px; -webkit-font-smoothing: antialiased; }
+input, select, button { font-family: inherit; }
+:where(button, a, input, select, summary):focus-visible { outline: 2px solid #55d9ff; outline-offset: 3px; }
+.city-workspace { height: calc(100dvh - 64px); min-height: 0; flex: none; gap: 12px; padding: 12px; background: radial-gradient(ellipse at 50% 10%, #0074b822, transparent 65%), #000; }
+.city-workspace > * { min-height: 0; }
+.city-center { gap: 12px; }
+.city-map { min-height: 400px; flex: 1 1 65%; border-radius: 16px; border: 1px solid var(--border); }
+.planning-summary { flex: 0 1 30%; min-height: 190px; }
+.summary-findings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.layer-rail { width: 250px; border-radius: 16px; background: linear-gradient(140deg, #00283d65, #000a) !important; border: 1px solid var(--border); }
+.planning-inspector { width: 365px; border-radius: 16px; background: linear-gradient(140deg, #18204465, #000a) !important; }
+.glass-pane, .planning-card, .city-map-panel { color: #fff; border: 1px solid var(--border); border-radius: 16px; background: linear-gradient(135deg, #06324c88, #020608cc); backdrop-filter: blur(12px); }
+.planning-card { padding: 14px; }
+.planning-card:nth-of-type(3n+2) { background: linear-gradient(135deg, #15244388, #000b); }
+.planning-card:nth-of-type(3n+3) { background: linear-gradient(135deg, #07383577, #000b); }
+.planning-field { width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 9px 10px; color: #fff; background: #00101e88; font-size: 15px; }
+option { background: #000; color: #fff; }
+/* Legacy surface utilities also use glass, so secondary pages never turn white. */
+:is(.bg-white, .bg-white\/95, .bg-slate-50, .bg-slate-100, .bg-sky-50, .bg-sky-100, .bg-primary-light, .bg-accent-light, .bg-surface, .bg-surface-elevated) { color: #fff; background-color: #051525aa; --ink: #fff; --muted: #a9e5ff; }
+body :is([class*="text-slate-"], [class*="text-gray-"], [class*="text-[#"], [class*="text-rose-"], [class*="text-emerald-"], [class*="text-amber-"], [class*="text-blue-"]) { color: #a9e5ff; }
+.city-workspace :is([class*="border-[#"], [class*="border-sky-"]) { border-color: var(--border); }
+button, .glass-button { color: #fff !important; border: 1px solid #53cfff38; background: #07172755 !important; backdrop-filter: blur(8px); transition: transform 150ms ease, background-color 150ms ease, border-color 150ms ease; }
+button:hover:not(:disabled), .glass-button:hover { transform: scale(1.035); border-color: #55d9ff99; background: #0b385c88 !important; }
+button[aria-pressed=true], .glass-button[aria-current=page] { border-color: #55d9ff; color: #55d9ff !important; }
+.text-\[9px\], .text-\[10px\], .text-\[11px\] { font-size: 0.8125rem; line-height: 1.35; }
+.city-map-panel { background: linear-gradient(135deg, #031420df, #000c); box-shadow: 0 4px 24px #00365c44; }
+.city-view-button { display: flex; justify-content: center; align-items: center; gap: 6px; padding: 8px 9px; font-size: 13px; border-radius: 9px; }
+.city-view-button-active { border-color: #55d9ff; color: #55d9ff !important; }
+.city-nav-button { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; }
+.city-atmosphere { z-index: 1; }
+.city-atmosphere-night { background: #455a7e; opacity: .11; mix-blend-mode: multiply; }
+.city-atmosphere-rain { background-image: repeating-linear-gradient(105deg, transparent 0 80px, #f3faff44 81px 82px, transparent 83px 135px); background-size: 200px 300px; animation: city-rain 1.5s linear infinite; opacity: .4; }
+@keyframes city-rain { to { background-position: -50px 300px; } }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: #55d9ff66; border-radius: 3px; }
+.city-workspace .city-map .maplibregl-ctrl-attrib.maplibregl-compact, .city-workspace .city-map .maplibregl-ctrl-attrib, .city-workspace .city-map .maplibregl-ctrl-scale { background: #000c; color: #fff; border-color: #55d9ff; font-size: 11px; }
+.city-map .maplibregl-ctrl-attrib a { color: #55d9ff; }
+@media (max-width: 1250px) { .layer-rail { width: 210px; } .planning-inspector { width: 310px; } .summary-findings { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .city-workspace { height: auto; flex-wrap: wrap; overflow: visible; } .layer-rail { width: 100%; max-height: 330px; } .city-center { flex-basis: 100%; } .city-map { min-height: 520px; } .planning-summary { min-height: 220px; max-height: 340px; } .planning-inspector { width: 100%; max-height: none; } }
+@media (prefers-reduced-motion: reduce) { .city-atmosphere-rain { animation: none; } button, .glass-button { transition: none; } button:hover:not(:disabled), .glass-button:hover { transform: none; } }

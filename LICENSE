@@ -1,0 +1,6 @@
+No project-wide license was specified in the supplied repository.
+All rights in the original code remain with its respective authors. No grant to
+redistribute or relicense third-party datasets is implied by this implementation.
+Dataset licenses and required attributions are recorded in immutable manifests.
+The hand-built test geometries are authored test fixtures, not licensed city observations.
+Choose and approve a project-wide software license before distributing this project.

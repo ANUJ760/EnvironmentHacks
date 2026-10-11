@@ -1,0 +1,726 @@
+"""Explicit operator commands; imports never run in API request handlers."""
+
+import json
+from datetime import UTC, datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+import typer
+from geoalchemy2.shape import from_shape, to_shape
+from shapely.geometry import MultiPolygon, Point
+from sqlalchemy import select, text
+
+from ecotwin.config import get_settings
+from ecotwin.db.models import (
+    AirObservation,
+    AirRevisionObservation,
+    AirStation,
+    City,
+    DatasetRevision,
+    FacilityProfile,
+    GeoFeature,
+    LandcoverCell,
+    WeatherHour,
+)
+from ecotwin.db.session import session_factory
+from ecotwin.errors import TwinError
+from ecotwin.ingestion.catalog import register_object, successful_run
+from ecotwin.ingestion.downloader import ProviderClient
+from ecotwin.spatial.city_snapshot import publish_snapshot
+from ecotwin.spatial.geometry import analysis_srid, bbox_geometry, project, validate_area
+from ecotwin.spatial.spatial_queries import city_by_slug
+
+app = typer.Typer(no_args_is_help=True)
+db = typer.Typer()
+city = typer.Typer()
+ingest = typer.Typer()
+datasets = typer.Typer()
+models = typer.Typer()
+jobs = typer.Typer()
+auth = typer.Typer()
+for name, group in [
+    ("db", db),
+    ("city", city),
+    ("ingest", ingest),
+    ("datasets", datasets),
+    ("models", models),
+    ("jobs", jobs),
+    ("auth", auth),
+]:
+    app.add_typer(group, name=name)
+
+
+def audited_import(function):
+    from functools import wraps
+
+    import structlog
+
+    from ecotwin.db.models import ImportRun
+    from ecotwin.ingestion.catalog import current_import_run
+
+    @wraps(function)
+    def audited(*args, **kwargs):
+        start = datetime.now(UTC)
+        with session_factory()() as session:
+            run = ImportRun(
+                status="RUNNING", started_at=start, details_json={"command": function.__name__}
+            )
+            session.add(run)
+            session.commit()
+            identifier = run.id
+        token = current_import_run.set(identifier)
+        try:
+            result = function(*args, **kwargs)
+            with session_factory()() as session:
+                run = session.get(ImportRun, identifier)
+                if run.status == "RUNNING":
+                    run.status = "SUCCEEDED"
+                    run.finished_at = datetime.now(UTC)
+                    run.details_json = {"command": function.__name__, "duplicate_revision": True}
+                    session.commit()
+            return result
+        except Exception as exc:
+            code = exc.code if isinstance(exc, TwinError) else "IMPORT_FAILED"
+            with session_factory()() as session:
+                run = session.get(ImportRun, identifier)
+                run.status = "FAILED"
+                run.finished_at = datetime.now(UTC)
+                run.error_code = code
+                run.details_json = {
+                    "command": function.__name__,
+                    "exception_type": type(exc).__name__,
+                }
+                session.commit()
+            structlog.get_logger().error(
+                "ingest_failed",
+                source=function.__name__,
+                error_code=code,
+                import_run_id=str(identifier),
+            )
+            raise
+        finally:
+            current_import_run.reset(token)
+
+    return audited
+
+
+def write_cache(document, name):
+    import tempfile
+
+    root = get_settings().ecotwin_cache_dir
+    root.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", suffix="-" + name, dir=root, delete=False) as file:
+        json.dump(document, file, allow_nan=False)
+        return Path(file.name)
+
+
+def output(value):
+    typer.echo(json.dumps(value, default=str))
+
+
+@db.command("check")
+def db_check():
+    with session_factory()() as session:
+        output(
+            {
+                "postgis": session.scalar(text("SELECT PostGIS_Version()")),
+                "migration": session.scalar(text("SELECT version_num FROM alembic_version")),
+            }
+        )
+
+
+@city.command("create")
+def city_create(
+    city_id: str = typer.Option(...),
+    name: str = typer.Option(...),
+    bbox: str = typer.Option(...),
+    timezone_name: str = typer.Option("UTC", "--timezone"),
+):
+    import re
+
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,99}", city_id):
+        raise TwinError("INVALID_CITY", "Use a lowercase city slug")
+    ZoneInfo(timezone_name)
+    boundary = bbox_geometry(bbox)
+    srid = analysis_srid(boundary)
+    validate_area(boundary, srid, get_settings().max_study_area_km2)
+    with session_factory()() as session:
+        row = session.scalar(select(City).where(City.slug == city_id))
+        if row:
+            if not to_shape(row.boundary).equals(boundary):
+                raise TwinError("CITY_CONFLICT", "City slug already has a different boundary", 409)
+        else:
+            row = City(
+                slug=city_id,
+                display_name=name,
+                boundary=from_shape(MultiPolygon([boundary]), srid=4326),
+                analysis_srid=srid,
+                timezone=timezone_name,
+            )
+            session.add(row)
+            session.commit()
+        output({"id": row.id, "slug": row.slug, "analysis_srid": row.analysis_srid})
+
+
+@city.command("snapshot")
+def snapshot(city: str = typer.Option(...)):
+    with session_factory()() as session:
+        row = publish_snapshot(session, city_by_slug(session, city))
+        session.commit()
+        output({"snapshot_id": row.id, "input_digest": row.composite_input_sha256})
+
+
+@ingest.command("osm")
+@audited_import
+def osm(
+    city: str = typer.Option(...),
+    file: Path | None = typer.Option(None),
+    method: str = typer.Option("cached"),
+):
+    from ecotwin.ingestion.osm import URL, fetch_osm, parse_geojson, pbf_geojson
+
+    with session_factory()() as session:
+        area = city_by_slug(session, city)
+        boundary = to_shape(area.boundary)
+        if file:
+            document = pbf_geojson(file) if file.suffix == ".pbf" else json.loads(file.read_text())
+        elif method == "overpass":
+            client = ProviderClient()
+            try:
+                document = fetch_osm(client, boundary)
+            finally:
+                client.close()
+            file = write_cache(document, "osm.geojson")
+        else:
+            raise TwinError(
+                "INSUFFICIENT_INPUT_DATA",
+                "Download a city-cropped OSM PBF/GeoJSON to data/raw and pass --file, or select --method overpass",
+            )
+        rows, rejected = parse_geojson(document, boundary)
+        revision, created = register_object(
+            session,
+            area,
+            "osm",
+            file,
+            boundary,
+            {"crs": "EPSG:4326", "rejected": rejected},
+            URL if method == "overpass" else None,
+        )
+        if created:
+            for row in rows:
+                geom = row.pop("geom")
+                metric = project(geom, area.analysis_srid)
+                session.add(
+                    GeoFeature(
+                        city_id=area.id,
+                        revision_id=revision.id,
+                        geom=from_shape(geom, srid=4326),
+                        area_m2=metric.area if "Polygon" in geom.geom_type else None,
+                        length_m=metric.length if "Line" in geom.geom_type else None,
+                        **row,
+                    )
+                )
+            successful_run(session, revision, len(rows), rejected)
+        session.commit()
+        output({"revision_id": revision.id, "features": len(rows), "rejected": rejected})
+
+
+@ingest.command("municipal-trees")
+@audited_import
+def municipal_trees(city: str = typer.Option(...), file: Path = typer.Option(...)):
+    from ecotwin.ingestion.municipal_trees import URL, parse_trees
+
+    with session_factory()() as session:
+        area = city_by_slug(session, city)
+        if not area.slug.startswith("zurich"):
+            raise TwinError("INVALID_CITY", "This provider covers Zürich only")
+        boundary = to_shape(area.boundary)
+        rows, rejected = parse_trees(json.loads(file.read_text()), boundary)
+        if not rows:
+            raise TwinError("INSUFFICIENT_INPUT_DATA", "No valid municipal trees within study")
+        revision, created = register_object(
+            session,
+            area,
+            "municipal_trees",
+            file,
+            boundary,
+            {
+                "crs": "EPSG:4326",
+                "rejected": rejected,
+                "inventory_complete": False,
+                "crown_quality": "estimated; 8 m provider fallback may apply",
+            },
+            URL,
+        )
+        if created:
+            for row in rows:
+                geom = row.pop("geom")
+                session.add(
+                    GeoFeature(
+                        city_id=area.id,
+                        revision_id=revision.id,
+                        geom=from_shape(geom, srid=4326),
+                        **row,
+                    )
+                )
+            successful_run(session, revision, len(rows), rejected)
+        session.commit()
+        output({"revision_id": revision.id, "trees": len(rows), "rejected": rejected})
+
+
+@ingest.command("worldcover")
+@audited_import
+def worldcover(
+    city: str = typer.Option(...),
+    file: Path | None = typer.Option(None),
+    year: int = typer.Option(2021),
+):
+    from ecotwin.ingestion.worldcover import raster_cells, tile_urls
+
+    if year != 2021:
+        raise TwinError("MODEL_INPUT_UNSUPPORTED", "Only WorldCover 2021 v200 is configured")
+    with session_factory()() as session:
+        area = city_by_slug(session, city)
+        boundary = to_shape(area.boundary)
+        if not file:
+            output(
+                {
+                    "required_downloads": tile_urls(boundary),
+                    "destination": "data/raw/worldcover/",
+                    "next": "ecotwin ingest worldcover --city " + city + " --file PATH",
+                }
+            )
+            raise typer.Exit(2)
+        rows, coverage, quality = raster_cells(file, boundary, area.analysis_srid)
+        revision, created = register_object(
+            session, area, "worldcover", file, coverage, {**quality, "resolution_m": 10}
+        )
+        if created:
+            for row in rows:
+                row["geom"] = from_shape(row["geom"], srid=4326)
+                session.add(LandcoverCell(city_id=area.id, revision_id=revision.id, **row))
+            successful_run(session, revision, len(rows))
+        session.commit()
+        output({"revision_id": revision.id, "cells": len(rows), "quality": quality})
+
+
+@ingest.command("weather")
+@audited_import
+def weather(
+    city: str = typer.Option(...),
+    file: Path | None = typer.Option(None),
+    forecast_hours: int = typer.Option(72),
+    issued_at: str | None = typer.Option(None),
+):
+    from ecotwin.ingestion.open_meteo import URL, fetch_weather, parse_weather
+
+    with session_factory()() as session:
+        area = city_by_slug(session, city)
+        center = to_shape(area.boundary).centroid
+        if file:
+            document = json.loads(file.read_text())
+            timestamp = issued_at or document.get("_ecotwin_issued_at")
+            if not timestamp:
+                raise TwinError(
+                    "INSUFFICIENT_INPUT_DATA",
+                    "Cached weather requires original --issued-at UTC timestamp",
+                )
+            issue = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        else:
+            if not get_settings().open_meteo_enabled:
+                raise TwinError("LAYER_UNAVAILABLE", "Weather connector disabled")
+            issue = datetime.now(UTC)
+            client = ProviderClient()
+            try:
+                document = fetch_weather(client, center.y, center.x, forecast_hours)
+            finally:
+                client.close()
+            document["_ecotwin_issued_at"] = issue.isoformat()
+            file = write_cache(document, "weather.json")
+        if not issue.tzinfo:
+            raise TwinError("UPSTREAM_PAYLOAD_INVALID", "Issue time must be timezone-aware")
+        rows = parse_weather(document, issue)
+        revision, created = register_object(
+            session,
+            area,
+            "weather",
+            file,
+            None,
+            {
+                "crs": "EPSG:4326",
+                "issued_at": issue.isoformat(),
+                "coverage": "coarse_grid",
+                "native_units": document["hourly_units"],
+            },
+            URL,
+        )
+        if created:
+            for row in rows:
+                session.add(WeatherHour(city_id=area.id, revision_id=revision.id, **row))
+            successful_run(session, revision, len(rows))
+        session.commit()
+        output({"revision_id": revision.id, "hours": len(rows)})
+
+
+@ingest.command("air-forecast")
+@audited_import
+def air_forecast(city: str = typer.Option(...), file: Path | None = typer.Option(None)):
+    from ecotwin.ingestion.air_forecast import URL, fetch_air_forecast, parse_air_forecast
+
+    with session_factory()() as session:
+        area = city_by_slug(session, city)
+        center = to_shape(area.boundary).centroid
+        if file:
+            document = json.loads(file.read_text())
+        else:
+            client = ProviderClient()
+            try:
+                document = fetch_air_forecast(client, center.y, center.x)
+            finally:
+                client.close()
+            document["_ecotwin_issued_at"] = datetime.now(UTC).isoformat()
+            file = write_cache(document, "air-forecast.json")
+        parsed = parse_air_forecast(document)
+        if abs(parsed["source_lat"] - center.y) > 2 or abs(parsed["source_lon"] - center.x) > 2:
+            raise TwinError("UPSTREAM_PAYLOAD_INVALID", "Air grid is outside this city's region")
+        revision, created = register_object(
+            session,
+            area,
+            "air_forecast",
+            file,
+            None,
+            {
+                "crs": "EPSG:4326",
+                "resolution_m": 11000,
+                "issued_at": parsed["fetched_at"],
+                "native_units": parsed["units"],
+                "coverage": "regional_model_grid_not_observation",
+            },
+            URL,
+        )
+        if created:
+            successful_run(session, revision, len(parsed["series"]))
+        session.commit()
+        output(
+            {
+                "revision_id": revision.id,
+                "hours": len(parsed["series"]),
+                "object_key": revision.object_key,
+            }
+        )
+
+
+@ingest.command("air")
+@audited_import
+def air(
+    city: str = typer.Option(...),
+    file: Path | None = typer.Option(None),
+    lookback_hours: int = typer.Option(48),
+):
+    from ecotwin.ingestion.openaq import URL, fetch_air, validate_cached_air
+
+    with session_factory()() as session:
+        area = city_by_slug(session, city)
+        boundary = to_shape(area.boundary)
+        if file:
+            document = json.loads(file.read_text())
+        else:
+            client = ProviderClient()
+            try:
+                document = fetch_air(client, get_settings(), boundary.bounds, lookback_hours)
+            finally:
+                client.close()
+            file = write_cache(document, "air.json")
+        document = validate_cached_air(document, boundary)
+        revision, created = register_object(
+            session,
+            area,
+            "air",
+            file,
+            None,
+            {"crs": "EPSG:4326", "coverage": document["coverage"]},
+            URL,
+        )
+        if created:
+            seen = set()
+            for row in document["observations"]:
+                location = row["location"]
+                coords = location["coordinates"]
+                point = Point(coords["longitude"], coords["latitude"])
+                if not boundary.covers(point):
+                    continue
+                station = session.scalar(
+                    select(AirStation).where(
+                        AirStation.source == "OpenAQ",
+                        AirStation.provider_station_id == str(location["id"]),
+                    )
+                )
+                if not station:
+                    station = AirStation(
+                        provider_station_id=str(location["id"]),
+                        source="OpenAQ",
+                        name=location["name"],
+                        location=from_shape(point, srid=4326),
+                        metadata_json=location,
+                    )
+                    session.add(station)
+                    session.flush()
+                key = (station.id, row["sensor_id"], row["parameter"], row["measured_at"])
+                if key in seen:
+                    continue
+                seen.add(key)
+                from sqlalchemy.dialects.postgresql import insert
+
+                session.execute(
+                    insert(AirObservation)
+                    .values(
+                        station_id=station.id,
+                        sensor_id=row["sensor_id"],
+                        parameter=row["parameter"],
+                        value=row["value"],
+                        unit=row["unit"],
+                        measured_at=datetime.fromisoformat(row["measured_at"]),
+                        source_url=row["source_url"],
+                        revision_id=revision.id,
+                    )
+                    .on_conflict_do_nothing()
+                )
+                observation = session.scalar(
+                    select(AirObservation).where(
+                        AirObservation.station_id == station.id,
+                        AirObservation.sensor_id == row["sensor_id"],
+                        AirObservation.parameter == row["parameter"],
+                        AirObservation.measured_at == datetime.fromisoformat(row["measured_at"]),
+                    )
+                )
+                if observation.value != row["value"] or observation.unit != row["unit"]:
+                    raise TwinError(
+                        "SOURCE_REVISION_CONFLICT",
+                        "Provider revised a deduplicated reading; retain originals and review the correction",
+                    )
+                session.execute(
+                    insert(AirRevisionObservation)
+                    .values(revision_id=revision.id, observation_id=observation.id)
+                    .on_conflict_do_nothing()
+                )
+            successful_run(session, revision, len(seen))
+        session.commit()
+        output({"revision_id": revision.id, "coverage": document["coverage"]})
+
+
+@ingest.command("waste")
+@audited_import
+def waste(city: str = typer.Option(...), file: Path = typer.Option(...)):
+    from ecotwin.ingestion.waste_import import WasteInput
+    from ecotwin.models.waste_adapter import build_scenario
+
+    document = json.loads(file.read_text())
+    WasteInput.model_validate(document)
+    build_scenario(document)
+    with session_factory()() as session:
+        area = city_by_slug(session, city)
+        revision, created = register_object(
+            session,
+            area,
+            "waste",
+            file,
+            None,
+            {"measurement_type": document["measurement_type"], "crs": "EPSG:4326"},
+            document["source_url"],
+            (
+                "Municipal or analyst inputs",
+                document["source_license"],
+                document["attribution"],
+                document["source_url"],
+            ),
+        )
+        if created:
+            for row in document["facilities"]:
+                session.add(
+                    FacilityProfile(
+                        city_id=area.id,
+                        revision_id=revision.id,
+                        facility_kind=row["facility_id"],
+                        geom=from_shape(Point(row["lon"], row["lat"]), srid=4326),
+                        capacity_tpd=row["capacity_tpd"],
+                        accepted_categories=row["accepted_categories"],
+                        efficiency_profile=row["profiles"],
+                        parameter_source=row["measurement_type"] + ":" + row["source_url"],
+                        effective_at=datetime.fromisoformat(row["effective_date"]),
+                    )
+                )
+            successful_run(session, revision, len(document["facilities"]))
+        session.commit()
+        output({"revision_id": revision.id})
+
+
+@datasets.command("verify")
+def verify_datasets(city: str = typer.Option(...)):
+    from ecotwin.storage.factory import object_store
+
+    with session_factory()() as session:
+        area = city_by_slug(session, city)
+        rows = list(
+            session.scalars(select(DatasetRevision).where(DatasetRevision.city_id == area.id))
+        )
+        store = object_store(get_settings(), {r.object_key: r.sha256 for r in rows})
+        for row in rows:
+            store.materialize(row.object_key, row.sha256)
+        output({"verified": len(rows)})
+
+
+@models.command("list")
+def list_models(city: str | None = typer.Option(None)):
+    from ecotwin.models.registry import MODELS, UNSUPPORTED
+
+    output({"models": MODELS, "unsupported": UNSUPPORTED, "city": city})
+
+
+@auth.command("issue-dev-token")
+def token(subject: str = typer.Option(...), minutes: int = typer.Option(60)):
+    from ecotwin.auth.dev_tokens import issue_token
+
+    typer.echo(issue_token(get_settings(), subject, minutes))
+
+
+@jobs.command("work")
+def work(once: bool = typer.Option(False)):
+    from ecotwin.jobs.worker import run_worker
+
+    run_worker(once=once)
+
+
+@ingest.command("landsat")
+@audited_import
+def landsat(
+    city: str = typer.Option(...),
+    scene_dir: Path = typer.Option(...),
+    manifest: Path = typer.Option(...),
+):
+    import rasterio
+    from rasterio.warp import transform_bounds
+    from shapely.geometry import box
+
+    from ecotwin.ingestion.landsat import surface_temperature
+
+    metadata = json.loads(manifest.read_text())
+    with session_factory()() as session:
+        area = city_by_slug(session, city)
+        boundary = to_shape(area.boundary)
+        values, affine, crs = surface_temperature(scene_dir, metadata, boundary)
+        import tempfile
+
+        cache = get_settings().ecotwin_cache_dir
+        cache.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(dir=cache, suffix=".tif", delete=False) as temporary:
+            path = Path(temporary.name)
+        with rasterio.open(
+            path,
+            "w",
+            driver="GTiff",
+            height=values.shape[0],
+            width=values.shape[1],
+            count=1,
+            dtype="float64",
+            crs=crs,
+            transform=affine,
+            nodata=-9999,
+        ) as raster:
+            raster.write(values.filled(-9999), 1)
+            coverage = box(*transform_bounds(crs, "EPSG:4326", *raster.bounds)).intersection(
+                boundary
+            )
+        revision, created = register_object(
+            session,
+            area,
+            "landsat",
+            path,
+            coverage,
+            {
+                "crs": str(crs),
+                "unit": "K",
+                "acquired_at": metadata["acquired_at"],
+                "scene_id": metadata["scene_id"],
+                "scale_factor": metadata["scale_factor"],
+                "add_offset": metadata["add_offset"],
+                "interpretation": "surface_not_air_temperature",
+            },
+            metadata["source_url"],
+            (
+                "USGS Landsat",
+                metadata["source_license"],
+                metadata["attribution"],
+                metadata["source_url"],
+            ),
+        )
+        if created:
+            successful_run(session, revision, int(values.count()))
+        session.commit()
+        output({"revision_id": revision.id, "valid_pixels": int(values.count()), "unit": "K"})
+
+
+@jobs.command("requeue")
+def requeue(job_id: str = typer.Option(...), reason: str = typer.Option(...)):
+    from uuid import UUID
+
+    from ecotwin.db.models import AuditEvent, SimulationJob
+
+    if not reason.strip() or len(reason) > 500:
+        raise TwinError("INVALID_REQUEST", "A bounded operator reason is required")
+    with session_factory()() as session:
+        job = session.scalar(
+            select(SimulationJob).where(SimulationJob.id == UUID(job_id)).with_for_update()
+        )
+        if not job or job.state != "FAILED":
+            raise TwinError(
+                "JOB_STATE_CONFLICT", "Only a failed job can be explicitly requeued", 409
+            )
+        old_attempt = job.attempt
+        old_error = job.error_code
+        job.state = "QUEUED"
+        job.attempt = 0
+        job.not_before = datetime.now(UTC)
+        job.finished_at = None
+        job.worker_id = None
+        job.locked_until = None
+        job.error_code = None
+        job.error_message = None
+        job.progress_pct = 0
+        session.add(
+            AuditEvent(
+                actor_id=None,
+                action="operator_job_requeued",
+                resource_id=job.id,
+                details={
+                    "reason": reason,
+                    "previous_attempts": old_attempt,
+                    "previous_error": old_error,
+                },
+            )
+        )
+        session.commit()
+        output({"job_id": job.id, "state": job.state})
+
+
+def main():
+    try:
+        app()
+    except TwinError as exc:
+        typer.echo(
+            json.dumps(
+                {"code": exc.code, "detail": exc.detail, "missing_inputs": exc.missing_inputs}
+            ),
+            err=True,
+        )
+        raise SystemExit(2) from None
+    except (ValueError, KeyError, OSError):
+        typer.echo(
+            json.dumps(
+                {
+                    "code": "IMPORT_INPUT_INVALID",
+                    "detail": "Check source file shape, file permissions and mandatory provenance fields",
+                }
+            ),
+            err=True,
+        )
+        raise SystemExit(2) from None

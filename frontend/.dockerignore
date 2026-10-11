@@ -1,0 +1,9 @@
+node_modules
+.next
+.next-check
+.env*
+!.env.example
+!.env.production.example
+tests
+docs
+*.log

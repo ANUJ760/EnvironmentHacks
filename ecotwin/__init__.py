@@ -26,8 +26,8 @@ from ecotwin.forecasting import (
     FORECASTING_BENCHMARK_NOTICE,
     HistoricalWasteDataset,
     RidgeLinearRegressor,
-    WasteForecastResult,
     WasteForecaster,
+    WasteForecastResult,
     WasteObservation,
     forecast_to_scenario,
     generate_synthetic_history,
@@ -126,4 +126,3 @@ __all__ = [
     "InvalidRoutingError",
     "ScenarioValidationError",
 ]
-

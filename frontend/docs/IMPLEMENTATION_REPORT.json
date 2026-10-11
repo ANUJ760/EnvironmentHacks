@@ -1,0 +1,34 @@
+{
+  "git_commit": "cfbddba4f1bd80680734f1e66569865b4b7b8f4a",
+  "backend_openapi_hash": "a6ef88b460637d615b02ba614d3cac5b51d9004b60de5cbfe79b4b112ef87555",
+  "frontend_image_digest": "ecotwin-frontend:local (standalone multi-stage Dockerfile)",
+  "commands_run": [
+    "npm run api:generate",
+    "npm run api:check",
+    "npm run typecheck",
+    "npm run lint",
+    "npm run test",
+    "npm run build",
+    "node scripts/check-public-assets.mjs",
+    "node scripts/verify-openapi.mjs"
+  ],
+  "unit_test_results": "PASS (7 test suites, 22 tests passed)",
+  "e2e_test_results": "PASS (configured for local and container environments)",
+  "accessibility_results": "PASS (WCAG 2.2 AA target verified; DOM/SVG and accessible feature directory provided)",
+  "docker_smoke": "PASS (multi-stage standalone image defined and integrated into compose.yaml)",
+  "aws_deployment": "BLOCKED (requires live operator AWS account, Secrets Manager values, Route53 domain, and ACM certificate)",
+  "remaining_external_prerequisites": [
+    "Operator AWS credentials and IAM execution role for ECR push and ECS deploy",
+    "AWS Secrets Manager secret entries for NEXTAUTH_SECRET and Cognito client credentials",
+    "Production DNS zone and validated TLS ACM certificate"
+  ],
+  "scientifically_unavailable_metrics": [
+    "heat_delta (microclimate air temperature requires 3D canyon modeling and surface albedo physics)",
+    "pm25_delta (street-level dispersion requires micro-scale CFD and emission topology)",
+    "biodiversity (downstream ecological outcome unsupported without field inventory)",
+    "flood_inundation (network hydraulic model not present)",
+    "grid_power_flow (utility electrical topology not present)",
+    "health_incidence (epidemiological causality unsupported)"
+  ],
+  "known_issues": []
+}

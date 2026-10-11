@@ -4,8 +4,33 @@
 
 <p align='center'> <b> A computational digital twin for modeling, stress-testing, and optimizing interconnected urban systems before deploying interventions in the real world. </b> </p>
 
-
 ---
+
+## Backend service (implemented)
+
+The interactive city-planning simulator now supports custom-area clearing/filling,
+before/after energy and waste balances, runoff, vegetation, regional air baselines
+and reproducible exports. [Small architecture guide](docs/ARCHITECTURE.md) describes
+the implemented scope, explicit scientific limits and Docker/AWS handoff.
+
+The preserved EcoTwin scientific library now has a FastAPI/PostGIS backend, immutable
+city snapshots, dataset import CLI, authenticated scenarios, recoverable worker jobs,
+local/S3 object storage, screening runoff/PV models and AWS Terraform infrastructure.
+
+```bash
+python3 scripts/local.py up
+```
+
+Docker Compose v2 and Python 3.10+ are the only host runtime prerequisites.
+The launcher downloads real inputs automatically; datasets are **not bundled**.
+See [local/AWS deployment and storage](docs/DEPLOYMENT.md) and the
+[fresh-clone agent prompt](docs/LOCAL_AGENT_PROMPT.md). Download slots and exact import steps:
+[Dataset onboarding](docs/DATASETS.md). Setup, models and release limitations:
+[Operations](docs/OPERATIONS.md). Cloud deployment: [Terraform runbook](infra/terraform/README.md).
+Actual validation evidence: [Implementation report](docs/implementation-report.json).
+Interactive city removal impacts, live forecast data and optional local Ollama:
+[Removal previews](docs/REMOVAL_PREVIEWS.md).
+The handoff guide pack is private and excluded from Git and Docker builds.
 
 ## Table of Contents
 

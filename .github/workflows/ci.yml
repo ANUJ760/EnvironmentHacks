@@ -1,0 +1,45 @@
+name: Backend CI
+on:
+  pull_request:
+  push:
+    branches: [backend, Backend]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgis:
+        image: postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5
+        env:
+          POSTGRES_USER: ecotwin
+          POSTGRES_PASSWORD: ecotwin_local_only
+          POSTGRES_DB: ecotwin
+        ports: ['55432:5432']
+        options: --health-cmd=pg_isready --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      APP_ENV: test
+      DATABASE_URL: postgresql+psycopg://ecotwin:ecotwin_local_only@localhost:55432/ecotwin
+      DEV_JWT_SECRET: isolated-ci-test-secret-never-valid-in-production
+      RUN_POSTGIS_TESTS: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with: {python-version: '3.12'}
+      - run: pip install uv==0.12.19
+      - run: uv sync --frozen
+      - run: uv run python scripts/check_requirements.py
+      - run: uv run ruff check . && uv run ruff format --check ecotwin tests/unit tests/integration tests/contracts tests/property scripts migrations
+      - run: uv run mypy
+      - run: uv run alembic upgrade head && uv run alembic check
+      - run: uv run pytest -q --cov=ecotwin --cov-branch --cov-report=xml --cov-report=json
+      - run: uv run python scripts/check_coverage.py
+      - run: uv run python scripts/generate_openapi.py && git diff --exit-code backend/openapi.json
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - run: npm ci && npm run api:check && npm run lint && npm run typecheck && npm run test && npm run build
+        working-directory: frontend
+      - run: uv run pip-audit
+      - run: docker build -t ecotwin-backend:ci . && docker run --rm ecotwin-backend:ci ecotwin --help
+      - run: docker run --rm ecotwin-backend:ci python -c "import osmium, rasterio, pyproj, shapely, psycopg; print('Native ingestion dependencies load')"
+      - run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.61.1@sha256:91bcccab7cb503127b0d792db7c652c4e556c9ff30eeb0908b6ae1980d7727ad image --ignore-unfixed --exit-code 1 --severity HIGH,CRITICAL ecotwin-backend:ci

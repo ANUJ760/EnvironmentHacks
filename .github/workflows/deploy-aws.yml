@@ -1,0 +1,74 @@
+name: Approved AWS release
+on:
+  workflow_dispatch:
+    inputs:
+      image_digest:
+        description: Previously CI-verified immutable ECR image URI
+        required: true
+      frontend_image_digest:
+        description: Previously CI-verified immutable frontend ECR image URI
+        required: true
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/backend'
+    environment: production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
+        with:
+          role-to-assume: ${{ vars.AWS_RELEASE_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Validate approved immutable artifact
+        env: {IMAGE_URI: '${{ inputs.image_digest }}'}
+        run: |
+          python -c 'import os,re; assert re.fullmatch(r"[0-9]+\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com/ecotwin-backend@sha256:[a-f0-9]{64}",os.environ["IMAGE_URI"])'
+      - name: Run migration before service deployment
+        env:
+          ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
+          MIGRATION_TASK: ${{ vars.MIGRATION_TASK }}
+          PRIVATE_SUBNETS: ${{ vars.PRIVATE_SUBNETS }}
+          MIGRATION_SECURITY_GROUP: ${{ vars.MIGRATION_SECURITY_GROUP }}
+          IMAGE_URI: ${{ inputs.image_digest }}
+        run: |
+          test "$(aws ecs describe-task-definition --task-definition "$MIGRATION_TASK" --query 'taskDefinition.containerDefinitions[0].image' --output text)" = "$IMAGE_URI"
+          TASK=$(aws ecs run-task --cluster "$ECS_CLUSTER" --task-definition "$MIGRATION_TASK" --launch-type FARGATE --network-configuration "awsvpcConfiguration={subnets=[$PRIVATE_SUBNETS],securityGroups=[$MIGRATION_SECURITY_GROUP],assignPublicIp=DISABLED}" --query 'tasks[0].taskArn' --output text)
+          test "$TASK" != None
+          aws ecs wait tasks-stopped --cluster "$ECS_CLUSTER" --tasks "$TASK"
+          test "$(aws ecs describe-tasks --cluster "$ECS_CLUSTER" --tasks "$TASK" --query 'tasks[0].containers[0].exitCode' --output text)" = 0
+      - name: Roll out pre-registered approved task definitions
+        env:
+          CLUSTER: ${{ vars.ECS_CLUSTER }}
+          API_SERVICE: ${{ vars.API_SERVICE }}
+          WORKER_SERVICE: ${{ vars.WORKER_SERVICE }}
+          API_TASK: ${{ vars.API_TASK }}
+          WORKER_TASK: ${{ vars.WORKER_TASK }}
+          API_URL: ${{ vars.API_URL }}
+          IMAGE_URI: ${{ inputs.image_digest }}
+          FRONTEND_IMAGE_URI: ${{ inputs.frontend_image_digest }}
+          FRONTEND_SERVICE: ${{ vars.FRONTEND_SERVICE }}
+          FRONTEND_TASK: ${{ vars.FRONTEND_TASK }}
+          FRONTEND_URL: ${{ vars.FRONTEND_URL }}
+        run: |
+          set -eu
+          python -c 'import os,re; assert re.fullmatch(r"[0-9]+\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com/[a-z0-9/_-]+@sha256:[a-f0-9]{64}",os.environ["FRONTEND_IMAGE_URI"])'
+          test "$(aws ecs describe-task-definition --task-definition "$FRONTEND_TASK" --query 'taskDefinition.containerDefinitions[0].image' --output text)" = "$FRONTEND_IMAGE_URI"
+          for TASK in "$API_TASK" "$WORKER_TASK"; do
+            test "$(aws ecs describe-task-definition --task-definition "$TASK" --query 'taskDefinition.containerDefinitions[0].image' --output text)" = "$IMAGE_URI"
+          done
+          aws ecs update-service --cluster "$CLUSTER" --service "$API_SERVICE" --task-definition "$API_TASK"
+          aws ecs update-service --cluster "$CLUSTER" --service "$WORKER_SERVICE" --task-definition "$WORKER_TASK"
+          if [ -n "$FRONTEND_SERVICE" ] && [ -n "$FRONTEND_TASK" ]; then
+            aws ecs update-service --cluster "$CLUSTER" --service "$FRONTEND_SERVICE" --task-definition "$FRONTEND_TASK"
+            aws ecs wait services-stable --cluster "$CLUSTER" --services "$API_SERVICE" "$WORKER_SERVICE" "$FRONTEND_SERVICE"
+          else
+            aws ecs wait services-stable --cluster "$CLUSTER" --services "$API_SERVICE" "$WORKER_SERVICE"
+          fi
+          curl --fail --silent --show-error "$API_URL/readyz"
+          curl --fail --silent --show-error "$API_URL/v1/cities"
+          if [ -n "$FRONTEND_URL" ]; then
+            curl --fail --silent --show-error "$FRONTEND_URL/api/health"
+          fi

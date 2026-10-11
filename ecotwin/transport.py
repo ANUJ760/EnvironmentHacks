@@ -10,14 +10,14 @@ All calculations enforce explicit physical units and strict determinism.
 """
 
 from __future__ import annotations
-from dataclasses import dataclass, field
+
 import math
-from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, Union
+from dataclasses import dataclass, field
+from typing import Any, Dict, Mapping, Optional, Tuple
 
 from ecotwin.exceptions import PhysicsViolationError
 from ecotwin.facility import ProcessingFacility
-from ecotwin.routing import RoutingPlan
-from ecotwin.units import Distance, DistanceUnit, Energy, EnergyUnit, Mass, MassUnit
+from ecotwin.units import Distance, Energy, Mass, MassUnit
 
 # Standard benchmark assumptions notice for transport parameters
 TRANSPORT_BENCHMARK_NOTICE = (
@@ -46,9 +46,13 @@ class TransportConfig:
 
     def __post_init__(self) -> None:
         if not isinstance(self.vehicle_payload, Mass):
-            raise PhysicsViolationError(f"vehicle_payload must be an instance of Mass, got {type(self.vehicle_payload)}")
+            raise PhysicsViolationError(
+                f"vehicle_payload must be an instance of Mass, got {type(self.vehicle_payload)}"
+            )
         if self.vehicle_payload.to_kg().value <= 0.0:
-            raise PhysicsViolationError(f"vehicle_payload must be positive, got {self.vehicle_payload}")
+            raise PhysicsViolationError(
+                f"vehicle_payload must be positive, got {self.vehicle_payload}"
+            )
 
         if not isinstance(self.vehicle_energy_per_km, Energy):
             raise PhysicsViolationError(
@@ -60,9 +64,13 @@ class TransportConfig:
             )
 
         if math.isnan(self.emissions_factor) or math.isinf(self.emissions_factor):
-            raise PhysicsViolationError(f"emissions_factor cannot be NaN or Inf, got {self.emissions_factor}")
+            raise PhysicsViolationError(
+                f"emissions_factor cannot be NaN or Inf, got {self.emissions_factor}"
+            )
         if self.emissions_factor < 0.0:
-            raise PhysicsViolationError(f"emissions_factor cannot be negative, got {self.emissions_factor}")
+            raise PhysicsViolationError(
+                f"emissions_factor cannot be negative, got {self.emissions_factor}"
+            )
 
 
 @dataclass(frozen=True)
@@ -114,8 +122,12 @@ class TransportEvaluationResult:
             "total_distance_km": round(self.total_distance.to_km().value, 2),
             "total_transport_energy_kwh": round(self.total_transport_energy.to_kwh().value, 2),
             "total_transport_energy_mwh": round(self.total_transport_energy.to_mwh().value, 4),
-            "total_transport_emissions_kg_co2": round(self.total_transport_emissions.to_kg().value, 2),
-            "total_transport_emissions_tonnes_co2": round(self.total_transport_emissions.to_tonnes().value, 4),
+            "total_transport_emissions_kg_co2": round(
+                self.total_transport_emissions.to_kg().value, 2
+            ),
+            "total_transport_emissions_tonnes_co2": round(
+                self.total_transport_emissions.to_tonnes().value, 4
+            ),
             "routes": {
                 fac_name: {
                     "waste_transported": f"{r.waste_transported.value:.2f} {r.waste_transported.unit.value}",
@@ -142,7 +154,7 @@ class TransportEvaluationResult:
             f"  * Total Transport CO2        : {self.total_transport_emissions.to_kg().value:.2f} kg CO2 ({self.total_transport_emissions.to_tonnes().value:.4f} t CO2)",
             "\n[Per-Facility Route Logistics Breakdown]",
             f"  {'Facility':<30} | {'Waste (t)':<10} | {'Dist (km)':<10} | {'Trips':<6} | {'Tot km':<10} | {'CO2 (kg)':<10}",
-            f"  {'-'*30}-|-{'-'*10}-|-{'-'*10}-|-{'-'*6}-|-{'-'*10}-|-{'-'*10}",
+            f"  {'-' * 30}-|-{'-' * 10}-|-{'-' * 10}-|-{'-' * 6}-|-{'-' * 10}-|-{'-' * 10}",
         ]
         for fac_name, r in self.route_results.items():
             w_t = r.waste_transported.to_tonnes().value
@@ -171,7 +183,7 @@ class TransportModel:
     ) -> RouteTransportResult:
         """
         Calculates logistics and emissions for transport of mass M over distance D:
-        
+
         trips = ceil(M / vehicle_payload)
         total_distance = trips * D
         transport_energy = total_distance * vehicle_energy_per_km
@@ -186,9 +198,11 @@ class TransportModel:
                 trips = 0
             else:
                 trips = math.ceil(m_tonnes / payload_tonnes)
-            
+
             total_dist = Distance.km(trips * d_km)
-            transport_energy = Energy.kwh(total_dist.to_km().value * config.vehicle_energy_per_km.to_kwh().value)
+            transport_energy = Energy.kwh(
+                total_dist.to_km().value * config.vehicle_energy_per_km.to_kwh().value
+            )
             transport_emissions = Mass.kg(transport_energy.to_kwh().value * config.emissions_factor)
 
             return RouteTransportResult(
@@ -274,4 +288,6 @@ def evaluate_transport(
     config: Optional[TransportConfig] = None,
 ) -> TransportEvaluationResult:
     """Convenience functional interface to evaluate waste transportation metrics."""
-    return TransportModel.evaluate_loads(facility_loads=facility_loads, facilities=facilities, config=config)
+    return TransportModel.evaluate_loads(
+        facility_loads=facility_loads, facilities=facilities, config=config
+    )
