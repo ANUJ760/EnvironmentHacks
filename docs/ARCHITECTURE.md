@@ -112,11 +112,12 @@ RUN_LIVE_MAP_TESTS=1 npm run test:e2e -- tests/e2e/planning.test.ts
 
 The live smoke test covers real building energy/displacement and material balance,
 custom-area drawing, filling, before/after map reuse, regional air and JSON export.
-Validated locally on 2026-10-11: 126 backend unit/contract tests, 38 frontend tests,
-four live map/planning checks against both development and the Docker frontend,
+Validated locally on 2026-10-11 after the focused planner update: 142 backend
+unit/contract tests, 43 frontend tests, six live map/planning checks against both
+development and the Docker frontend in production configuration,
 TypeScript, lint, production builds and an actual exported-report replay passed.
 The optional Gemma explanation was also checked against the host Ollama service.
-The complete backend regression suite additionally passed: 177 tests, with 13
+The complete backend regression suite additionally passed: 193 tests, with 13
 opt-in integration tests skipped. Production dependencies have no known findings
 in `npm audit --omit=dev`; development-tool advisories remain separate release work.
 Replay an exported report without network access or a database:
@@ -129,6 +130,15 @@ Replay validates both hashes and recalculates all metrics from the captured inpu
 Metric comparison allows 1e-12 relative / 1e-9 absolute floating-point tolerance
 across Python runtimes. Hashes are unsigned integrity checks, not proof of origin.
 This verifies internal reproducibility, not local scientific calibration.
+
+The new smoke checks include account/lab retirement, real municipal-tree provenance,
+nearest-tree picking and the requested left/map/summary/right layout. Map readiness,
+zoom labels and rendered-feature counts no longer wait for every optional imagery
+tile; navigation is positioned separately from the legend. Use `--workers=1` for
+software-rendered live-browser checks to avoid resource contention and external
+tile-request bursts. Earlier navigation/tile-loading timeouts were corrected and
+the six checks rerun successfully. The separate temporary smoke container was
+removed afterward; the main local frontend remains on port 3000.
 
 ## Docker → AWS handoff
 

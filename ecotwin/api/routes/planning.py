@@ -153,7 +153,7 @@ def selected_area(request, city, snapshot, session):
     return (
         supplied,
         metric.area,
-        "User-selected area intersected with published OSM and WorldCover",
+        "User-selected area intersected with published mapped features and WorldCover",
         to_shape(city.boundary).covers(supplied),
     )
 

@@ -172,7 +172,7 @@ def resolve_geometry(request, city, snapshot, session):
         )
         + str(authoritative.revision_id)
         if authoritative
-        else "OSM map-tile geometry (outside published coverage or no matching feature)"
+        else "Unverified supplied map geometry (outside published coverage or no matching feature)"
     )
     if request.kind == "tree":
         metric = metric.buffer(request.crown_diameter_m / 2, quad_segs=24)
