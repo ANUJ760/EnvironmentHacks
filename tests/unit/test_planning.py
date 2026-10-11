@@ -1,4 +1,5 @@
 import json
+import time
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from uuid import uuid4
@@ -6,12 +7,12 @@ from uuid import uuid4
 import pytest
 from geoalchemy2.shape import from_shape
 from pydantic import ValidationError
-from shapely.geometry import box
+from shapely.geometry import box, mapping
 
 from ecotwin.api.routes import planning
 from ecotwin.errors import TwinError
 from ecotwin.ingestion.air_forecast import FIELDS, parse_air_forecast
-from ecotwin.models.planning import PlanningReport, PlanningRequest, calculate_planning
+from ecotwin.models.planning import PlanningReport, PlanningRequest, calculate_planning, cover_cn
 from ecotwin.models.planning import planning_digest as canonical_digest
 from scripts.replay_planning_report import replay
 
@@ -165,6 +166,36 @@ def test_published_air_fallback_reads_verified_object_store_not_local_assumption
     assert called == [(revision.object_key, revision.sha256)]
 
 
+def test_regional_air_uses_fresh_complete_cache(monkeypatch):
+    now = datetime.now(UTC)
+    start = now.replace(minute=0, second=0, microsecond=0)
+    parsed = {
+        "fetched_at": now.isoformat(),
+        "series": [
+            {"valid_at": (start + timedelta(hours=hour)).isoformat(), "pm2_5": 4}
+            for hour in range(1, 25)
+        ],
+    }
+    city = SimpleNamespace(
+        id=uuid4(), boundary=from_shape(box(8.53, 47.37, 8.55, 47.39), srid=4326)
+    )
+    monkeypatch.setattr(
+        planning, "_air_cache", {str(city.id): (time.monotonic(), parsed, {"cache": True})}
+    )
+    monkeypatch.setattr(
+        planning,
+        "get_settings",
+        lambda: SimpleNamespace(open_meteo_enabled=False),
+    )
+    metadata, samples = planning.regional_air(
+        city, SimpleNamespace(dataset_revision_ids=[]), SimpleNamespace(), 24
+    )
+    assert metadata["source"] == "live_regional_forecast"
+    assert metadata["complete"]
+    assert metadata["provenance"] == {"cache": True}
+    assert len(samples) == 24
+
+
 def test_wide_sliver_cannot_bypass_bounded_selection_area():
     city = SimpleNamespace(
         id=uuid4(),
@@ -181,6 +212,186 @@ def test_wide_sliver_cannot_bypass_bounded_selection_area():
     )
     with pytest.raises(TwinError, match="5 km"):
         planning.selected_area(request, city, None, None)
+
+
+@pytest.mark.parametrize(
+    ("selection_type", "within", "stale", "coverage", "building_area", "expected"),
+    [
+        ("building", False, True, {50: 50}, 0, (True, True, True)),
+        ("area", True, False, {50: 100}, 20, (False, False, False)),
+    ],
+)
+def test_planning_preview_reports_geometry_weather_and_coverage_limits(
+    monkeypatch, selection_type, within, stale, coverage, building_area, expected
+):
+    city_id, snapshot_id = uuid4(), uuid4()
+    city = SimpleNamespace(id=city_id, analysis_srid=32632)
+    snapshot = SimpleNamespace(
+        id=snapshot_id, dataset_revision_ids=[], composite_input_sha256="snapshot-hash"
+    )
+    selected = box(8.53, 47.37, 8.531, 47.371)
+    inventory = {
+        "floor_area_m2": 300,
+        "building_area_m2": building_area,
+        "buildings_count": 1,
+    }
+    monkeypatch.setattr(planning, "city_row", lambda session, identifier: city)
+    monkeypatch.setattr(planning, "active_snapshot", lambda session, identifier: snapshot)
+    monkeypatch.setattr(
+        planning,
+        "selected_area",
+        lambda request, city, snapshot, session: (selected, 100, "test geometry", within),
+    )
+    monkeypatch.setattr(
+        planning,
+        "intersect_inventory",
+        lambda session, city, snapshot, selected, request: (inventory, coverage),
+    )
+    monkeypatch.setattr(
+        planning,
+        "live_weather",
+        lambda city, session, snapshot, hours: ({"stale": stale}, [{"rain_mm": 1}]),
+    )
+    monkeypatch.setattr(planning, "regional_air", lambda *args: ({"status": "UNAVAILABLE"}, []))
+    monkeypatch.setattr(planning, "calculate_planning", lambda *args: ([], [], [], []))
+    session = SimpleNamespace(scalars=lambda query: [])
+
+    report = planning.planning_preview(
+        city_id, PlanningRequest(geometry={}, selection_type=selection_type), session
+    )
+
+    outside_limit, incomplete_coverage_limit, building_assumption = expected
+    assert any("Outside the verified study boundary" in item for item in report["limitations"]) == (
+        outside_limit
+    )
+    assert any("WorldCover covers" in item for item in report["limitations"]) == (
+        incomplete_coverage_limit
+    )
+    assert (report["inventory"].get("footprint_source") == "supplied_map_outline") == (
+        building_assumption
+    )
+    assert (not report["within_analysis_area"]) == outside_limit
+
+
+def test_selected_feature_uses_geometry_point_when_location_is_missing(monkeypatch):
+    request = PlanningRequest(
+        geometry={"type": "Point", "coordinates": [8.54, 47.38]}, selection_type="tree"
+    )
+    seen = []
+    monkeypatch.setattr(
+        planning,
+        "resolve_geometry",
+        lambda request, city, snapshot, session: (
+            seen.append(request.location) or (box(8.54, 47.38, 8.541, 47.381), 10, "tree", True)
+        ),
+    )
+    result = planning.selected_area(request, SimpleNamespace(), None, None)
+    assert seen == [(8.54, 47.38)]
+    assert result[1:] == (10, "tree", True)
+
+
+def test_selected_feature_prefers_explicit_location(monkeypatch):
+    request = PlanningRequest(
+        geometry={"type": "Point", "coordinates": [8.54, 47.38]},
+        selection_type="tree",
+        location=(8.5401, 47.3801),
+    )
+    seen = []
+    monkeypatch.setattr(
+        planning,
+        "resolve_geometry",
+        lambda request, city, snapshot, session: (
+            seen.append(request.location) or (box(8.54, 47.38, 8.541, 47.381), 10, "tree", True)
+        ),
+    )
+    planning.selected_area(request, SimpleNamespace(), None, None)
+    assert seen == [(8.5401, 47.3801)]
+
+
+@pytest.mark.parametrize(
+    ("bounds", "message"),
+    [
+        ((8.54, 47.38, 8.540001, 47.380001), "1 m²"),
+        ((8.8, 47.38, 8.801, 47.381), "15 km"),
+    ],
+)
+def test_selected_area_rejects_tiny_or_remote_geometry(bounds, message):
+    city = SimpleNamespace(
+        analysis_srid=32632,
+        boundary=from_shape(box(8.53, 47.37, 8.55, 47.39), srid=4326),
+    )
+    request = PlanningRequest(geometry=mapping(box(*bounds)))
+    with pytest.raises(TwinError, match=message):
+        planning.selected_area(request, city, None, None)
+
+
+def test_inventory_rejects_overfull_selection_and_accounts_for_buildings():
+    from geoalchemy2.shape import from_shape
+    from shapely.geometry import LineString
+
+    city = SimpleNamespace(id=uuid4(), analysis_srid=32644)
+    snapshot = SimpleNamespace(dataset_revision_ids=[uuid4()])
+    selected = box(79, 21, 79.003, 21.003)
+    request = PlanningRequest(geometry={}, building_levels=4)
+
+    class Result:
+        def all(self):
+            return []
+
+    class Session:
+        def __init__(self, rows):
+            self.rows = rows
+
+        def execute(self, query):
+            return Result()
+
+        def scalars(self, query):
+            return self.rows
+
+    with pytest.raises(TwinError, match="Too many mapped objects"):
+        planning.intersect_inventory(Session([None] * 5001), city, snapshot, selected, request)
+
+    def feature(shape, category, tags):
+        return SimpleNamespace(geom=from_shape(shape, srid=4326), category=category, tags=tags)
+
+    rows = [
+        feature(box(79, 21, 79.001, 21.001), "building", {"building:levels": "2"}),
+        feature(box(79.0005, 21, 79.0015, 21.001), "building", {"building:levels": "0"}),
+        feature(LineString([(79, 21), (79.001, 21)]), "road", {}),
+        feature(box(79.01, 21, 79.011, 21.001), "road", {}),
+        feature(box(79.0018, 21, 79.00180001, 21.00000001), "park", {}),
+    ]
+    inventory, cover = planning.intersect_inventory(
+        Session(rows), city, snapshot, selected, request
+    )
+    assert inventory["buildings_count"] == 2
+    assert inventory["buildings_with_assumed_levels"] == 1
+    assert inventory["floor_area_m2"] > 0
+    assert inventory["roads_count"] == 1
+    assert cover == {}
+
+
+def test_empty_inventory_is_valid_for_bounded_selection():
+    city = SimpleNamespace(id=uuid4(), analysis_srid=32644)
+    snapshot = SimpleNamespace(dataset_revision_ids=[uuid4()])
+
+    class Result:
+        def all(self):
+            return []
+
+    class Session:
+        def execute(self, query):
+            return Result()
+
+        def scalars(self, query):
+            return []
+
+    inventory, cover = planning.intersect_inventory(
+        Session(), city, snapshot, box(79, 21, 79.001, 21.001), PlanningRequest(geometry={})
+    )
+    assert inventory["building_area_m2"] == 0
+    assert inventory["mapped_trees_count"] == 0
+    assert cover == {}
 
 
 def replayable_report():
@@ -236,6 +447,22 @@ def test_numeric_hash_survives_browser_conversion_of_integral_floats():
     assert canonical_digest(
         {"number": 1.0, "missing": None, "nested": [0.0, 2.5]}
     ) == canonical_digest({"number": 1, "missing": None, "nested": [0, 2.5]})
+
+
+def test_planning_digest_rejects_non_finite_numbers_and_handles_bare_cover():
+    with pytest.raises(ValueError, match="Finite numbers"):
+        canonical_digest({"value": float("inf")})
+    assert cover_cn(60, 2) == 91
+    assert cover_cn(80, 2) is None
+
+
+def test_park_planning_includes_habitat_finding():
+    request = PlanningRequest(geometry={}, selection_type="park")
+    metrics, findings, _, _ = calculate_planning(
+        request, {"floor_area_m2": 0, "building_area_m2": 0}, {10: 100}, 100, [], [], 1
+    )
+    assert any(finding["id"] == "habitat" for finding in findings)
+    assert metrics
 
 
 def test_altered_metrics_are_rejected_even_with_a_recomputed_report_hash():

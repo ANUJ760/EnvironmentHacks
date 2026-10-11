@@ -6,9 +6,10 @@ from ecotwin.api.schemas import Reclassify, SimulationRequest
 from ecotwin.config import Settings
 from ecotwin.errors import TwinError
 from ecotwin.ingestion.openaq import fetch_air, pages
+from ecotwin.models.landcover import CoverPiece, reclassify
 from ecotwin.models.waste_adapter import build_scenario
 from ecotwin.simulation.validation import validate_edits
-from ecotwin.spatial.geometry import analysis_srid, geometry
+from ecotwin.spatial.geometry import analysis_srid, geometry, project
 
 
 @pytest.mark.parametrize(
@@ -121,3 +122,27 @@ def test_air_payload_structure_and_missing_measurements():
             return {"results": [{"value": None}]}
 
     assert fetch_air(Client(), settings, (78, 20, 80, 22))["coverage"] == "none"
+
+
+def test_landcover_fractional_reclassification_preserves_outside_pieces(monkeypatch):
+    target = box(79, 21, 79.0015, 21.001)
+    pieces = [
+        CoverPiece(project(box(79, 21, 79.002, 21.001), 32644), 10),
+        CoverPiece(project(box(79.003, 21, 79.004, 21.001), 32644), 10),
+    ]
+    edit = {
+        "polygon_geojson": mapping(target),
+        "from_class_code": 10,
+        "to_class_code": 50,
+        "fraction": 0.5,
+    }
+    output, realized = reclassify(pieces, edit, 32644)
+    assert realized > 0
+    assert any(piece.class_code == 50 for piece in output)
+    assert any(piece.class_code == 10 for piece in output)
+
+    import ecotwin.models.landcover as landcover
+
+    monkeypatch.setattr(landcover.math, "isclose", lambda *args, **kwargs: False)
+    with pytest.raises(TwinError, match="Area conservation"):
+        reclassify(pieces, edit, 32644)

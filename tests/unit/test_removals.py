@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 from geoalchemy2.shape import from_shape
 from pydantic import ValidationError
-from shapely.geometry import LineString, MultiPolygon, box, mapping
+from shapely.geometry import LineString, MultiLineString, MultiPolygon, box, mapping
 
 from ecotwin.api.routes import removals
 from ecotwin.api.routes.removals import live_weather, resolve_geometry
@@ -82,6 +82,28 @@ def test_road_footprint_is_labeled_as_assumed_not_surveyed():
 def test_storms_are_split_after_six_dry_hours():
     assert rain_events([{"rain_mm": rain} for rain in [2, 3, 0, 0, 0, 0, 0, 0, 4]]) == [5, 4]
     assert rain_events([{"rain_mm": rain} for rain in [2, 0, 0, 4]]) == [6]
+
+
+def test_missing_rainfall_sample_is_rejected():
+    with pytest.raises(TwinError, match="Missing rainfall"):
+        rain_events([{"rain_mm": None}])
+
+
+def test_park_uses_visible_grass_proxy_for_woodland_ground():
+    _, findings, _ = evaluate_removal(
+        request("park", baseline_cover="wood", rainfall_mm=75), 200, []
+    )
+    assert {finding["id"] for finding in findings} >= {"wood_proxy", "replacement", "habitat"}
+
+
+def test_building_sunlight_and_road_no_solar_paths():
+    building, _, building_hourly = evaluate_removal(request("building"), 200, samples())
+    assert any(metric.key == "roof_solar" for metric in building)
+    assert building_hourly
+    road, findings, road_hourly = evaluate_removal(request("road"), 200, samples())
+    assert any(finding["id"] == "traffic" for finding in findings)
+    assert road_hourly == []
+    assert all(metric.key != "solar_exposure" for metric in road)
 
 
 def test_strict_inputs_and_parameter_bounds():
@@ -191,3 +213,69 @@ def test_unavailable_and_stale_published_weather_are_explicit(monkeypatch):
     assert metadata["source"] == "pinned_forecast"
     assert metadata["complete"] and metadata["stale"]
     assert len(samples) == 24
+
+
+@pytest.mark.parametrize(
+    ("inside", "complete", "stale"), [(False, False, True), (True, True, False)]
+)
+def test_preview_adds_only_applicable_scope_and_forecast_limitations(
+    monkeypatch, inside, complete, stale
+):
+    city_id = uuid4()
+    city = SimpleNamespace(id=city_id)
+    snapshot = SimpleNamespace()
+    monkeypatch.setattr(removals, "city_row", lambda session, identifier: city)
+    monkeypatch.setattr(removals, "active_snapshot", lambda session, identifier: snapshot)
+    monkeypatch.setattr(
+        removals,
+        "resolve_geometry",
+        lambda *args: (box(8.54, 47.38, 8.541, 47.381), 100, "test", inside),
+    )
+    monkeypatch.setattr(
+        removals,
+        "live_weather",
+        lambda *args: ({"complete": complete, "stale": stale}, []),
+    )
+    monkeypatch.setattr(removals, "evaluate_removal", lambda *args: ([], [], []))
+
+    report = removals.preview(city_id, request(), SimpleNamespace())
+    assert any("outside the verified analysis area" in item for item in report.limitations) == (
+        not inside
+    )
+    assert any("coverage is incomplete" in item for item in report.limitations) == (not complete)
+    assert any("forecast is stale" in item for item in report.limitations) == stale
+
+
+def test_geometry_resolution_rejects_far_clicks_mismatched_shapes_and_uses_nearest_road():
+    city, snapshot = weather_context()
+    city.analysis_srid = 32632
+
+    far = request()
+    far.location = (8.9, 47.38)
+    far.geometry = {"type": "Point", "coordinates": far.location}
+    with pytest.raises(TwinError, match="within 15 km"):
+        resolve_geometry(far, city, snapshot, EmptySession())
+
+    mismatch = request()
+    mismatch.geometry = mapping(LineString([(8.539, 47.38), (8.541, 47.38)]))
+    with pytest.raises(TwinError, match="Unsupported geometry"):
+        resolve_geometry(mismatch, city, snapshot, EmptySession())
+
+    distant = request()
+    distant.geometry = {"type": "Point", "coordinates": [8.541, 47.38]}
+    with pytest.raises(TwinError, match="near the clicked location"):
+        resolve_geometry(distant, city, snapshot, EmptySession())
+
+    multiline = request("road")
+    multiline.geometry = mapping(
+        MultiLineString(
+            [
+                [(8.539, 47.38), (8.541, 47.38)],
+                [(8.53, 47.375), (8.532, 47.375)],
+            ]
+        )
+    )
+    _, area, source, inside = resolve_geometry(multiline, city, snapshot, EmptySession())
+    assert area > 0
+    assert "segment length and road width are user-assumed" in source
+    assert inside
