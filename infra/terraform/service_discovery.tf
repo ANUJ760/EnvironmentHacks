@@ -18,14 +18,6 @@ resource "aws_service_discovery_service" "api" {
   }
 }
 
-resource "aws_vpc_security_group_ingress_rule" "api_from_frontend" {
-  security_group_id            = aws_security_group.tasks["api"].id
-  referenced_security_group_id = aws_security_group.frontend.id
-  from_port                    = 8000
-  to_port                      = 8000
-  ip_protocol                  = "tcp"
-}
-
 resource "aws_iam_role" "frontend" {
   name               = "${local.name}-frontend-task"
   assume_role_policy = aws_iam_role.execution.assume_role_policy

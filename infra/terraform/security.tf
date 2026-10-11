@@ -43,6 +43,15 @@ resource "aws_security_group" "tasks" {
       security_groups = [aws_security_group.alb.id]
     }
   }
+  dynamic "ingress" {
+    for_each = each.key == "api" ? [1] : []
+    content {
+      from_port       = 8000
+      to_port         = 8000
+      protocol        = "tcp"
+      security_groups = [aws_security_group.frontend.id]
+    }
+  }
   egress {
     from_port   = 443
     to_port     = 443
