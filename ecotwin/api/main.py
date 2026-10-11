@@ -11,7 +11,7 @@ from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from sqlalchemy import text
 
 from ecotwin.api.error_handlers import problem, register_handlers
-from ecotwin.api.routes import cities, removals, scenarios
+from ecotwin.api.routes import cities, planning, removals, scenarios
 from ecotwin.config import get_settings
 from ecotwin.db.session import session_dependency
 from ecotwin.errors import TwinError
@@ -131,4 +131,5 @@ def metrics():
 
 app.include_router(cities.router)
 app.include_router(removals.router)
+app.include_router(planning.router)
 app.include_router(scenarios.router)

@@ -89,6 +89,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/cities/{identifier}/environment-baseline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Environment Baseline */
+        get: operations["environment_baseline_v1_cities__identifier__environment_baseline_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/cities/{identifier}/features": {
         parameters: {
             query?: never;
@@ -151,6 +168,23 @@ export interface paths {
         get: operations["weather_v1_cities__identifier__observations_weather_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/cities/{identifier}/planning-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Planning Preview */
+        post: operations["planning_preview_v1_cities__identifier__planning_preview_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -584,6 +618,204 @@ export interface components {
             start_at?: string | null;
             /** Unit */
             unit: string;
+        };
+        /** PlanningReport */
+        PlanningReport: {
+            /** Affected Geometry */
+            affected_geometry: {
+                [key: string]: unknown;
+            };
+            /** Air */
+            air: {
+                [key: string]: unknown;
+            };
+            /** Area M2 */
+            area_m2: number;
+            /** City Id */
+            city_id: string;
+            /** Computed At */
+            computed_at: string;
+            /** Coverage Fraction */
+            coverage_fraction: number;
+            /** Findings */
+            findings: {
+                [key: string]: unknown;
+            }[];
+            /** Geometry Source */
+            geometry_source: string;
+            /** Hourly */
+            hourly: {
+                [key: string]: unknown;
+            }[];
+            /** Input Sha256 */
+            input_sha256: string;
+            /** Inputs */
+            inputs: {
+                [key: string]: unknown;
+            };
+            /** Inventory */
+            inventory: {
+                [key: string]: unknown;
+            };
+            /** Landcover */
+            landcover: {
+                [key: string]: unknown;
+            }[];
+            /** Limitations */
+            limitations: string[];
+            /** Metrics */
+            metrics: components["schemas"]["RemovalMetric"][];
+            /**
+             * Model Version
+             * @default planning-screen-v1
+             */
+            model_version: string;
+            /** Provenance */
+            provenance: {
+                [key: string]: unknown;
+            };
+            /** Result Sha256 */
+            result_sha256: string;
+            /** Snapshot Id */
+            snapshot_id: string;
+            /** Sources */
+            sources: {
+                [key: string]: unknown;
+            }[];
+            /** Weather */
+            weather: {
+                [key: string]: unknown;
+            };
+            /** Within Analysis Area */
+            within_analysis_area: boolean;
+        };
+        /** PlanningRequest */
+        PlanningRequest: {
+            /**
+             * Action
+             * @default remove
+             * @enum {string}
+             */
+            action: "remove" | "fill" | "green";
+            /**
+             * Building Levels
+             * @default 3
+             */
+            building_levels: number;
+            /**
+             * Crown Diameter M
+             * @default 8
+             */
+            crown_diameter_m: number;
+            /**
+             * Demolition T M2
+             * @default 0.8
+             */
+            demolition_t_m2: number;
+            /**
+             * Deposition Velocity Mm S
+             * @default 1
+             */
+            deposition_velocity_mm_s: number;
+            /**
+             * Displaced Fraction
+             * @default 1
+             */
+            displaced_fraction: number;
+            /**
+             * Energy Kwh M2 Year
+             * @default 100
+             */
+            energy_kwh_m2_year: number;
+            /**
+             * Fill Density T M3
+             * @default 1.6
+             */
+            fill_density_t_m3: number;
+            /**
+             * Fill Height M
+             * @default 0.5
+             */
+            fill_height_m: number;
+            /**
+             * Floor M2 Per Person
+             * @default 40
+             */
+            floor_m2_per_person: number;
+            /**
+             * Forecast Hours
+             * @default 24
+             */
+            forecast_hours: number;
+            /**
+             * Forest Carbon Kg M2
+             * @default 7
+             */
+            forest_carbon_kg_m2: number;
+            /** Geometry */
+            geometry: {
+                [key: string]: unknown;
+            };
+            /**
+             * Leaf Area Index
+             * @default 3
+             */
+            leaf_area_index: number;
+            /** Location */
+            location?: [
+                number,
+                number
+            ] | null;
+            /** Rainfall Mm */
+            rainfall_mm?: number | null;
+            /**
+             * Recovery Fraction
+             * @default 0.6
+             */
+            recovery_fraction: number;
+            /**
+             * Replacement
+             * @default grass
+             * @enum {string}
+             */
+            replacement: "unchanged" | "grass" | "bare" | "impervious";
+            /**
+             * Road Length M
+             * @default 50
+             */
+            road_length_m: number;
+            /**
+             * Road Width M
+             * @default 6
+             */
+            road_width_m: number;
+            /**
+             * Selection Type
+             * @default area
+             * @enum {string}
+             */
+            selection_type: "area" | "tree" | "building" | "road" | "park" | "water";
+            /**
+             * Soil Group
+             * @default B
+             * @enum {string}
+             */
+            soil_group: "A" | "B" | "C" | "D";
+            /**
+             * Trunk Diameter Cm
+             * @default 30
+             */
+            trunk_diameter_cm: number;
+            /**
+             * Waste Kg Person Day
+             * @default 1
+             */
+            waste_kg_person_day: number;
+            /**
+             * Water Depth M
+             * @default 1.5
+             */
+            water_depth_m: number;
         };
         /** Reclassify */
         Reclassify: {
@@ -1113,6 +1345,37 @@ export interface operations {
             };
         };
     };
+    environment_baseline_v1_cities__identifier__environment_baseline_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     features_v1_cities__identifier__features_get: {
         parameters: {
             query: {
@@ -1235,6 +1498,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WeatherView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    planning_preview_v1_cities__identifier__planning_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanningRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanningReport"];
                 };
             };
             /** @description Validation Error */

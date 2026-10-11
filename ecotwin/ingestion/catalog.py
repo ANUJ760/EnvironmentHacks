@@ -14,6 +14,12 @@ from ecotwin.storage.manifest import DatasetManifest
 current_import_run = ContextVar("current_import_run", default=None)
 
 SOURCES = {
+    "air_forecast": (
+        "Open-Meteo CAMS",
+        "Provider terms; CAMS attribution; review commercial use",
+        "CAMS ENSEMBLE / CAMS GHG via Open-Meteo",
+        "https://open-meteo.com/en/docs/air-quality-api",
+    ),
     "osm": (
         "OpenStreetMap",
         "ODbL-1.0",

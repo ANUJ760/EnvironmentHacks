@@ -319,6 +319,54 @@ def weather(
         output({"revision_id": revision.id, "hours": len(rows)})
 
 
+@ingest.command("air-forecast")
+@audited_import
+def air_forecast(city: str = typer.Option(...), file: Path | None = typer.Option(None)):
+    from ecotwin.ingestion.air_forecast import URL, fetch_air_forecast, parse_air_forecast
+
+    with session_factory()() as session:
+        area = city_by_slug(session, city)
+        center = to_shape(area.boundary).centroid
+        if file:
+            document = json.loads(file.read_text())
+        else:
+            client = ProviderClient()
+            try:
+                document = fetch_air_forecast(client, center.y, center.x)
+            finally:
+                client.close()
+            document["_ecotwin_issued_at"] = datetime.now(UTC).isoformat()
+            file = write_cache(document, "air-forecast.json")
+        parsed = parse_air_forecast(document)
+        if abs(parsed["source_lat"] - center.y) > 2 or abs(parsed["source_lon"] - center.x) > 2:
+            raise TwinError("UPSTREAM_PAYLOAD_INVALID", "Air grid is outside this city's region")
+        revision, created = register_object(
+            session,
+            area,
+            "air_forecast",
+            file,
+            None,
+            {
+                "crs": "EPSG:4326",
+                "resolution_m": 11000,
+                "issued_at": parsed["fetched_at"],
+                "native_units": parsed["units"],
+                "coverage": "regional_model_grid_not_observation",
+            },
+            URL,
+        )
+        if created:
+            successful_run(session, revision, len(parsed["series"]))
+        session.commit()
+        output(
+            {
+                "revision_id": revision.id,
+                "hours": len(parsed["series"]),
+                "object_key": revision.object_key,
+            }
+        )
+
+
 @ingest.command("air")
 @audited_import
 def air(

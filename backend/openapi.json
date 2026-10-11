@@ -662,6 +662,372 @@
         "title": "Metric",
         "type": "object"
       },
+      "PlanningReport": {
+        "properties": {
+          "affected_geometry": {
+            "additionalProperties": true,
+            "title": "Affected Geometry",
+            "type": "object"
+          },
+          "air": {
+            "additionalProperties": true,
+            "title": "Air",
+            "type": "object"
+          },
+          "area_m2": {
+            "title": "Area M2",
+            "type": "number"
+          },
+          "city_id": {
+            "title": "City Id",
+            "type": "string"
+          },
+          "computed_at": {
+            "title": "Computed At",
+            "type": "string"
+          },
+          "coverage_fraction": {
+            "title": "Coverage Fraction",
+            "type": "number"
+          },
+          "findings": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "geometry_source": {
+            "title": "Geometry Source",
+            "type": "string"
+          },
+          "hourly": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Hourly",
+            "type": "array"
+          },
+          "input_sha256": {
+            "title": "Input Sha256",
+            "type": "string"
+          },
+          "inputs": {
+            "additionalProperties": true,
+            "title": "Inputs",
+            "type": "object"
+          },
+          "inventory": {
+            "additionalProperties": true,
+            "title": "Inventory",
+            "type": "object"
+          },
+          "landcover": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Landcover",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/RemovalMetric"
+            },
+            "title": "Metrics",
+            "type": "array"
+          },
+          "model_version": {
+            "default": "planning-screen-v1",
+            "title": "Model Version",
+            "type": "string"
+          },
+          "provenance": {
+            "additionalProperties": true,
+            "title": "Provenance",
+            "type": "object"
+          },
+          "result_sha256": {
+            "title": "Result Sha256",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "weather": {
+            "additionalProperties": true,
+            "title": "Weather",
+            "type": "object"
+          },
+          "within_analysis_area": {
+            "title": "Within Analysis Area",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "computed_at",
+          "city_id",
+          "snapshot_id",
+          "area_m2",
+          "affected_geometry",
+          "geometry_source",
+          "within_analysis_area",
+          "inventory",
+          "landcover",
+          "coverage_fraction",
+          "metrics",
+          "findings",
+          "limitations",
+          "sources",
+          "weather",
+          "air",
+          "hourly",
+          "inputs",
+          "provenance",
+          "input_sha256",
+          "result_sha256"
+        ],
+        "title": "PlanningReport",
+        "type": "object"
+      },
+      "PlanningRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "default": "remove",
+            "enum": [
+              "remove",
+              "fill",
+              "green"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "building_levels": {
+            "default": 3,
+            "maximum": 60.0,
+            "minimum": 1.0,
+            "title": "Building Levels",
+            "type": "number"
+          },
+          "crown_diameter_m": {
+            "default": 8,
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Crown Diameter M",
+            "type": "number"
+          },
+          "demolition_t_m2": {
+            "default": 0.8,
+            "maximum": 5.0,
+            "minimum": 0.0,
+            "title": "Demolition T M2",
+            "type": "number"
+          },
+          "deposition_velocity_mm_s": {
+            "default": 1,
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Deposition Velocity Mm S",
+            "type": "number"
+          },
+          "displaced_fraction": {
+            "default": 1,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Displaced Fraction",
+            "type": "number"
+          },
+          "energy_kwh_m2_year": {
+            "default": 100,
+            "maximum": 600.0,
+            "minimum": 0.0,
+            "title": "Energy Kwh M2 Year",
+            "type": "number"
+          },
+          "fill_density_t_m3": {
+            "default": 1.6,
+            "maximum": 3.0,
+            "minimum": 0.5,
+            "title": "Fill Density T M3",
+            "type": "number"
+          },
+          "fill_height_m": {
+            "default": 0.5,
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "title": "Fill Height M",
+            "type": "number"
+          },
+          "floor_m2_per_person": {
+            "default": 40,
+            "maximum": 500.0,
+            "minimum": 5.0,
+            "title": "Floor M2 Per Person",
+            "type": "number"
+          },
+          "forecast_hours": {
+            "default": 24,
+            "maximum": 72.0,
+            "minimum": 6.0,
+            "title": "Forecast Hours",
+            "type": "integer"
+          },
+          "forest_carbon_kg_m2": {
+            "default": 7,
+            "maximum": 50.0,
+            "minimum": 0.0,
+            "title": "Forest Carbon Kg M2",
+            "type": "number"
+          },
+          "geometry": {
+            "additionalProperties": true,
+            "title": "Geometry",
+            "type": "object"
+          },
+          "leaf_area_index": {
+            "default": 3,
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Leaf Area Index",
+            "type": "number"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "rainfall_mm": {
+            "anyOf": [
+              {
+                "maximum": 300.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rainfall Mm"
+          },
+          "recovery_fraction": {
+            "default": 0.6,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Recovery Fraction",
+            "type": "number"
+          },
+          "replacement": {
+            "default": "grass",
+            "enum": [
+              "unchanged",
+              "grass",
+              "bare",
+              "impervious"
+            ],
+            "title": "Replacement",
+            "type": "string"
+          },
+          "road_length_m": {
+            "default": 50,
+            "maximum": 300.0,
+            "minimum": 5.0,
+            "title": "Road Length M",
+            "type": "number"
+          },
+          "road_width_m": {
+            "default": 6,
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Road Width M",
+            "type": "number"
+          },
+          "selection_type": {
+            "default": "area",
+            "enum": [
+              "area",
+              "tree",
+              "building",
+              "road",
+              "park",
+              "water"
+            ],
+            "title": "Selection Type",
+            "type": "string"
+          },
+          "soil_group": {
+            "default": "B",
+            "enum": [
+              "A",
+              "B",
+              "C",
+              "D"
+            ],
+            "title": "Soil Group",
+            "type": "string"
+          },
+          "trunk_diameter_cm": {
+            "default": 30,
+            "maximum": 150.0,
+            "minimum": 3.0,
+            "title": "Trunk Diameter Cm",
+            "type": "number"
+          },
+          "waste_kg_person_day": {
+            "default": 1,
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Waste Kg Person Day",
+            "type": "number"
+          },
+          "water_depth_m": {
+            "default": 1.5,
+            "maximum": 30.0,
+            "minimum": 0.0,
+            "title": "Water Depth M",
+            "type": "number"
+          }
+        },
+        "required": [
+          "geometry"
+        ],
+        "title": "PlanningRequest",
+        "type": "object"
+      },
       "Reclassify": {
         "additionalProperties": false,
         "properties": {
@@ -1748,6 +2114,47 @@
         ]
       }
     },
+    "/v1/cities/{identifier}/environment-baseline": {
+      "get": {
+        "operationId": "environment_baseline_v1_cities__identifier__environment_baseline_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identifier",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identifier",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Environment Baseline",
+        "tags": [
+          "planning previews"
+        ]
+      }
+    },
     "/v1/cities/{identifier}/features": {
       "get": {
         "operationId": "features_v1_cities__identifier__features_get",
@@ -2027,6 +2434,59 @@
         "summary": "Weather",
         "tags": [
           "cities"
+        ]
+      }
+    },
+    "/v1/cities/{identifier}/planning-preview": {
+      "post": {
+        "operationId": "planning_preview_v1_cities__identifier__planning_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identifier",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identifier",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanningRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Planning Preview",
+        "tags": [
+          "planning previews"
         ]
       }
     },

@@ -10,6 +10,7 @@ from ecotwin.errors import TwinError
 
 ALLOWED_HOSTS = {
     "api.open-meteo.com",
+    "air-quality-api.open-meteo.com",
     "api.openaq.org",
     "overpass-api.de",
     "esa-worldcover.s3.eu-central-1.amazonaws.com",
