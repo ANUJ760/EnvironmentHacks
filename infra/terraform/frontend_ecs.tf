@@ -55,7 +55,7 @@ resource "aws_ecs_task_definition" "frontend" {
 
       environment = [
         { name = "APP_ENV", value = "production" },
-        { name = "APP_BASE_URL", value = "https://${var.domain_name}" },
+        { name = "APP_BASE_URL", value = local.public_url },
         { name = "ECOTWIN_API_INTERNAL_URL", value = "http://api.${aws_service_discovery_private_dns_namespace.internal.name}:8000" },
         { name = "MAP_CACHE_DIR", value = "/tmp/ecotwin-map-cache" },
         { name = "OLLAMA_BASE_URL", value = var.ollama_base_url },

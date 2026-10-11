@@ -1,4 +1,5 @@
 resource "aws_acm_certificate" "api" {
+  count             = var.use_cloudfront ? 0 : 1
   domain_name       = var.domain_name
   validation_method = "DNS"
   lifecycle {
@@ -7,7 +8,7 @@ resource "aws_acm_certificate" "api" {
 }
 resource "aws_route53_record" "validation" {
   for_each = {
-    for option in aws_acm_certificate.api.domain_validation_options : option.domain_name => option
+    for option in(var.use_cloudfront ? [] : aws_acm_certificate.api[0].domain_validation_options) : option.domain_name => option
   }
   zone_id = var.zone_id
   name    = each.value.resource_record_name
@@ -16,7 +17,8 @@ resource "aws_route53_record" "validation" {
   ttl     = 60
 }
 resource "aws_acm_certificate_validation" "api" {
-  certificate_arn         = aws_acm_certificate.api.arn
+  count                   = var.use_cloudfront ? 0 : 1
+  certificate_arn         = aws_acm_certificate.api[0].arn
   validation_record_fqdns = [for record in aws_route53_record.validation : record.fqdn]
 }
 resource "aws_lb" "api" {
@@ -40,17 +42,19 @@ resource "aws_lb_target_group" "api" {
   }
 }
 resource "aws_lb_listener" "https" {
+  count             = var.use_cloudfront ? 0 : 1
   load_balancer_arn = aws_lb.api.arn
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-  certificate_arn   = aws_acm_certificate_validation.api.certificate_arn
+  certificate_arn   = aws_acm_certificate_validation.api[0].certificate_arn
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.api.arn
   }
 }
 resource "aws_lb_listener" "redirect" {
+  count             = var.use_cloudfront ? 0 : 1
   load_balancer_arn = aws_lb.api.arn
   port              = 80
   protocol          = "HTTP"
@@ -64,6 +68,7 @@ resource "aws_lb_listener" "redirect" {
   }
 }
 resource "aws_route53_record" "api" {
+  count   = var.use_cloudfront ? 0 : 1
   zone_id = var.zone_id
   name    = var.domain_name
   type    = "A"
@@ -75,7 +80,7 @@ resource "aws_route53_record" "api" {
 }
 
 resource "aws_lb_listener_rule" "private_metrics" {
-  listener_arn = aws_lb_listener.https.arn
+  listener_arn = local.listener_arn
   priority     = 1
   condition {
     path_pattern {

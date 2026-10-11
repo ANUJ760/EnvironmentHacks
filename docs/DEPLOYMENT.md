@@ -76,6 +76,31 @@ forecasts do not establish street-level pollution, oxygen or river chemistry.
 
 ## AWS storage and deployment harness
 
+### AWS-provided CloudFront hostname
+
+For an account without a custom domain, set `use_cloudfront=true` in the ignored
+Terraform variables file. Generate a random `origin_verify_secret` of at least
+32 characters and protect it like a credential. `domain_name`, `zone_id`, and
+`allowed_cors_origin` can remain empty: the public URL and CORS origin come from
+the new CloudFront distribution. The default custom-domain configuration remains
+available when `use_cloudfront=false`.
+
+CloudFront redirects visitors to HTTPS and disables caching for application/API
+responses. Its load-balancer origin uses HTTP because an AWS load-balancer name
+cannot use a customer ACM certificate. Origin ingress is restricted to AWS's
+CloudFront prefix list; listener rules also require the generated secret header.
+Use a custom domain with ACM for HTTPS on both network legs when required.
+
+For initial RDS setup, run `scripts/bootstrap_aws_database.py` as a one-off ECS
+task in the private application subnets. Give that temporary task permission to
+read the RDS administrator secret and write the four runtime database secrets.
+Supply `DB_ADMIN_SECRET_ARN`, `DB_HOST`, and the JSON mapping
+`DB_RUNTIME_SECRET_ARNS`. Run it first to create PostGIS and distinct database
+roles, run the migration with the migration role, then run it with `--grants`.
+Remove the temporary administrator IAM permissions afterward. Passwords are
+generated in memory and stored in Secrets Manager; no password enters Terraform
+variables or command output.
+
 No cloud resources are created by local setup. AWS deployment is an explicit,
 paid operator action requiring AWS CLI/SSO credentials, Terraform 1.11+, Docker,
 an owned Route53 domain, and a private encrypted/versioned Terraform state bucket.

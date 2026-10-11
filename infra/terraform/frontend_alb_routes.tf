@@ -20,7 +20,7 @@ resource "aws_lb_target_group" "frontend" {
 }
 
 resource "aws_lb_listener_rule" "frontend" {
-  listener_arn = aws_lb_listener.https.arn
+  listener_arn = local.listener_arn
   priority     = 10
 
   action {
@@ -33,10 +33,19 @@ resource "aws_lb_listener_rule" "frontend" {
       values = ["/*"]
     }
   }
+  dynamic "condition" {
+    for_each = var.use_cloudfront ? [1] : []
+    content {
+      http_header {
+        http_header_name = "X-EcoTwin-Origin"
+        values           = [var.origin_verify_secret]
+      }
+    }
+  }
 }
 
 resource "aws_lb_listener_rule" "backend_paths" {
-  listener_arn = aws_lb_listener.https.arn
+  listener_arn = local.listener_arn
   priority     = 5
   action {
     type             = "forward"
@@ -45,6 +54,15 @@ resource "aws_lb_listener_rule" "backend_paths" {
   condition {
     path_pattern {
       values = ["/v1/*", "/readyz", "/livez"]
+    }
+  }
+  dynamic "condition" {
+    for_each = var.use_cloudfront ? [1] : []
+    content {
+      http_header {
+        http_header_name = "X-EcoTwin-Origin"
+        values           = [var.origin_verify_secret]
+      }
     }
   }
 }

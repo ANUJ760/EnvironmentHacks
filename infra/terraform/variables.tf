@@ -14,21 +14,35 @@ variable "owner" {
   type = string
 }
 variable "domain_name" {
-  type = string
+  type    = string
+  default = ""
   validation {
-    condition     = length(var.domain_name) > 3
+    condition     = var.domain_name == "" || length(var.domain_name) > 3
     error_message = "An operator-owned TLS hostname is required."
   }
 }
 variable "zone_id" {
-  type = string
+  type    = string
+  default = ""
 }
 variable "allowed_cors_origin" {
-  type = string
+  type    = string
+  default = ""
   validation {
-    condition     = startswith(var.allowed_cors_origin, "https://")
+    condition     = var.allowed_cors_origin == "" || startswith(var.allowed_cors_origin, "https://")
     error_message = "HTTPS CORS origin required."
   }
+}
+
+variable "use_cloudfront" {
+  type    = bool
+  default = false
+}
+
+variable "origin_verify_secret" {
+  type      = string
+  sensitive = true
+  default   = ""
 }
 variable "db_instance_class" {
   type    = string

@@ -41,7 +41,7 @@ output "cognito_client_id" {
   value = aws_cognito_user_pool_client.web.id
 }
 output "api_https_url" {
-  value = "https://${var.domain_name}"
+  value = local.public_url
 }
 output "runtime_secret_arns" {
   value = {

@@ -1,17 +1,21 @@
 resource "aws_security_group" "alb" {
   name   = "${local.name}-alb"
   vpc_id = aws_vpc.main.id
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+  dynamic "ingress" {
+    for_each = var.use_cloudfront ? [] : [1]
+    content {
+      from_port   = 443
+      to_port     = 443
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
   }
   ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    cidr_blocks     = var.use_cloudfront ? [] : ["0.0.0.0/0"]
+    prefix_list_ids = var.use_cloudfront ? [data.aws_ec2_managed_prefix_list.cloudfront[0].id] : []
   }
   egress {
     from_port   = 8000

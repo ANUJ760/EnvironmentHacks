@@ -37,7 +37,7 @@ resource "aws_ecs_task_definition" "tasks" {
         name = "AUTH_MODE", value = "cognito"
       },
       {
-        name = "CORS_ALLOWED_ORIGINS", value = var.allowed_cors_origin
+        name = "CORS_ALLOWED_ORIGINS", value = local.cors_origin
       },
       {
         name = "ECOTWIN_STORAGE_MODE", value = "s3"

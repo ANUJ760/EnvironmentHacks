@@ -11,7 +11,7 @@ output "frontend_task_definition_arn" {
 }
 
 output "frontend_https_url" {
-  value = "https://${var.domain_name}"
+  value = local.public_url
 }
 
 output "frontend_target_group_arn" {
