@@ -19,6 +19,8 @@ data/raw/**
 !data/raw/**/
 !data/raw/**/.gitkeep
 data/processed/**
+data/bootstrap/**
+data/cache/**
 frontend/public/maps/*.geojson
 !data/processed/**/
 !data/processed/**/.gitkeep
@@ -30,5 +32,6 @@ htmlcov/
 .terraform/
 *.tfstate*
 *.tfplan
+deployment-outputs.json
 terraform.tfvars
 node_modules/

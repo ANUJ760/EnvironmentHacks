@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "city": {"slug": "zurich-center", "name": "Zurich Center", "bbox": "8.53,47.37,8.55,47.39", "timezone": "Europe/Zurich"},
+  "downloads": [
+    {"id": "osm", "path": "raw/osm/Zuerich.osm.pbf", "url": "https://download.bbbike.org/osm/bbbike/Zuerich/Zuerich.osm.pbf", "format": "pbf", "max_bytes": 250000000, "license": "ODbL-1.0; OpenStreetMap contributors"},
+    {"id": "municipal_trees", "path": "raw/zurich-municipal-trees.geojson", "url": "https://www.ogd.stadt-zuerich.ch/wfs/geoportal/Baumkataster?SERVICE=WFS&REQUEST=GetFeature&VERSION=1.1.0&TYPENAME=baumkataster_baumstandorte&SRSNAME=EPSG:4326&OUTPUTFORMAT=application%2Fvnd.geo%2Bjson", "format": "trees", "max_bytes": 100000000, "license": "CC0-1.0; Grün Stadt Zürich"},
+    {"id": "nrcs", "path": "raw/research/urban-soil-primer.pdf", "url": "https://www.nrcs.usda.gov/sites/default/files/2022-10/urban_soil_primer.pdf", "format": "pdf", "max_bytes": 30000000, "license": "USDA NRCS; inspect third-party image credits before redistribution"},
+    {"id": "jenkins", "path": "raw/research/jenkins-2003.pdf", "url": "https://research.fs.usda.gov/download/treesearch/6996.pdf", "format": "pdf", "max_bytes": 10000000, "license": "US Forest Service publication; attribution retained"},
+    {"id": "ipcc", "path": "raw/research/ipcc-forest-land.pdf", "url": "https://www.ipcc-nggip.iges.or.jp/public/2006gl/pdf/4_Volume4/V4_04_Ch4_Forest_Land.pdf", "format": "pdf", "max_bytes": 20000000, "license": "IPCC report; review reproduction terms"},
+    {"id": "nrcs_forest", "path": "raw/research/nrcs-forest-curve-numbers.pdf", "url": "https://directives.nrcs.usda.gov/sites/default/files2/1712930818/31754.pdf", "format": "pdf", "max_bytes": 30000000, "license": "USDA NRCS National Engineering Handbook"},
+    {"id": "map_manifest", "path": "raw/maps/openfreemap-tilejson.json", "url": "https://tiles.openfreemap.org/planet", "format": "tilejson", "max_bytes": 1000000, "license": "OpenFreeMap / OpenStreetMap attribution and ODbL obligations"}
+  ],
+  "generated": ["raw/osm/zurich-center.osm.pbf", "raw/worldcover/zurich-center.tif", "raw/weather/zurich-center.json", "raw/air/zurich-center.json", "frontend/public/maps/zurich-trees.geojson"],
+  "streamed": [
+    {"id": "vector_tiles", "url": "https://tiles.openfreemap.org/planet", "local_cache": "data/cache/maps", "note": "Downloaded automatically on map requests; not a complete offline city archive"},
+    {"id": "aerial", "url": "https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg", "local_cache": "data/cache/maps", "note": "swisstopo aerial orthophotography; review reuse terms"},
+    {"id": "glyphs", "url": "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf", "local_cache": "data/cache/maps", "note": "Font/provider terms apply"}
+  ],
+  "optional": [
+    {"id": "openaq", "note": "Requires OPENAQ_API_KEY; no local stations are fabricated. Enable ingest with --with-openaq."},
+    {"id": "waste_facilities", "note": "Only supplied municipal records meeting waste-input.schema.json can be imported; default waste intensities are explicit scenario assumptions."},
+    {"id": "landsat", "note": "Not used by the primary planner. Optional calibrated surface-temperature observations require a valid operator-supplied scene manifest."},
+    {"id": "ollama", "note": "Optional Docker profile ai; default qwen2.5:1.5b. Model files stay in an ignored local Docker volume, not Git or the application image."}
+  ]
+}

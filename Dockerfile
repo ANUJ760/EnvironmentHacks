@@ -13,12 +13,14 @@ ARG BUILD_TIMESTAMP=unknown
 LABEL org.opencontainers.image.revision=$GIT_REVISION org.opencontainers.image.created=$BUILD_TIMESTAMP
 RUN groupadd --gid 10001 ecotwin && useradd --uid 10001 --gid 10001 --create-home ecotwin && mkdir -p /app/cache && chown 10001:10001 /app/cache
 WORKDIR /app
-ENV PATH="/app/.venv/bin:$PATH" PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+ENV PATH="/app/.venv/bin:$PATH" PYTHONPATH=/app PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 COPY --from=build /app/.venv ./.venv
 COPY ecotwin ./ecotwin
 COPY model_parameters ./model_parameters
 COPY migrations ./migrations
 COPY alembic.ini ./
+COPY scripts ./scripts
+COPY config ./config
 COPY scripts/entrypoint.sh /usr/local/bin/entrypoint
 VOLUME ["/app/cache"]
 USER 10001:10001

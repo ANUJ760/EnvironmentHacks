@@ -28,6 +28,7 @@ jobs:
         with: {python-version: '3.12'}
       - run: pip install uv==0.12.19
       - run: uv sync --frozen
+      - run: uv run python scripts/check_requirements.py
       - run: uv run ruff check . && uv run ruff format --check ecotwin tests/unit tests/integration tests/contracts tests/property scripts migrations
       - run: uv run mypy
       - run: uv run alembic upgrade head && uv run alembic check

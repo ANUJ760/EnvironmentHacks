@@ -1,9 +1,13 @@
-.PHONY: setup up migrate ingest-demo test integration smoke down contracts
+.PHONY: setup up download up-ai migrate ingest-demo test integration smoke down contracts
 setup:
 	uv sync --frozen
 	python scripts/setup_local.py
 up:
-	docker compose up --build -d
+	python3 scripts/local.py up
+download:
+	python3 scripts/local.py download
+up-ai:
+	python3 scripts/local.py up --with-ollama
 migrate:
 	docker compose run --rm migrate
 # Uses your downloaded files; never fetches a country-sized extract.
@@ -23,4 +27,4 @@ down:
 	docker compose down
 contracts:
 	uv run python scripts/generate_openapi.py
-	cd frontend && npm ci && npm run generate && npm run typecheck
+	cd frontend && npm ci && npm run api:generate && npm run typecheck
