@@ -2,6 +2,9 @@
   "name": "ecotwin-frontend",
   "version": "0.2.0",
   "private": true,
+  "overrides": {
+    "postcss": "$postcss"
+  },
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0 --port 3000",
     "build": "next build",
@@ -43,13 +46,13 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.475.0",
     "maplibre-gl": "^6.13.0",
-    "next": "^15.2.1",
+    "next": "15.5.27",
     "next-auth": "^4.24.15",
     "openapi-fetch": "^0.13.8",
     "pixi.js": "^8.22.0",
     "proj4": "^2.22.0",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "recharts": "^2.15.4",
     "tailwind-merge": "^3.7.0",
     "zod": "^3.25.76",
