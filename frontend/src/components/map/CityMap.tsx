@@ -147,7 +147,7 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
         setLoading(false);
         setError('');
       });
-      map.on('idle', () => {
+      const refreshCounts = () => {
         if (disposed) return;
         clearTimeout(countTimer);
         countTimer = setTimeout(() => {
@@ -163,7 +163,12 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
             return { x: pixel.x, y: pixel.y };
           }).filter(pixel => pixel.x > map.getCanvas().clientWidth * .35 && pixel.x < map.getCanvas().clientWidth * .75 && pixel.y > map.getCanvas().clientHeight * .2 && pixel.y < map.getCanvas().clientHeight * .7).slice(0, 12)));
         }, 120);
-      });
+      };
+      map.on('idle', refreshCounts);
+      map.on('sourcedata', refreshCounts);
+      map.on('styledata', refreshCounts);
+      map.on('moveend', refreshCounts);
+      map.on('zoomend', () => { if (!disposed) setZoom(map.getZoom()); });
       map.on('click', event => {
         if (usePlanningStore.getState().drawing) {
           usePlanningStore.getState().addPoint([event.lngLat.lng, event.lngLat.lat]);
@@ -200,7 +205,7 @@ export function CityMap({ cityId, citySlug, cityName, boundary, isScenario = fal
         if (usePlanningStore.getState().drawing) { map.getCanvas().style.cursor = 'crosshair'; return; }
         if (now - lastHoverAt < 50 || map.isMoving()) return;
         lastHoverAt = now;
-        if (!map.isStyleLoaded()) return;
+        if (!map.getLayer('tree-canopies')) return;
         const trees = map.queryRenderedFeatures([[event.point.x - 9, event.point.y - 9], [event.point.x + 9, event.point.y + 9]], { layers: ['tree-canopies'] });
         const hit = nearestTree(trees, event.point, coordinate => map.project(coordinate)) || map.queryRenderedFeatures(event.point, { layers: ['building-roofs', 'aerial-building-hit', 'parks', 'water', 'roads', 'tree-clusters'].filter(id => map.getLayer(id)) })[0];
         map.getCanvas().style.cursor = hit ? 'pointer' : '';
